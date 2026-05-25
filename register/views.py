@@ -10,9 +10,8 @@ from django.core.mail import send_mail
 from django.conf import settings
 import json
 import requests
-import fitz
-import spacy
 import os
+import re
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST,require_http_methods
 from django.utils import timezone
@@ -24,26 +23,11 @@ from datetime import timedelta
 import urllib.parse
 import pytz
 
-nlp = spacy.load("en_core_web_sm")
+from .cv_skills import extract_skills_from_cv
 
 REDIRECT_URI = "http://127.0.0.1:8000/meta-callback/"
 APP_ID     = "1234567890123456" 
 APP_SECRET = "abc123def456..."  
-
-SKILLS_LIST = [
-    'python', 'java', 'javascript', 'c++', 'c#', 'php', 'ruby', 'swift',
-    'kotlin', 'typescript', 'golang', 'rust', 'scala', 'r',
-    'html', 'css', 'react', 'angular', 'vue', 'django', 'flask',
-    'node.js', 'express', 'bootstrap', 'tailwind', 'rest api', 'graphql',
-    'machine learning', 'deep learning', 'tensorflow', 'pytorch', 'keras',
-    'pandas', 'numpy', 'scikit-learn', 'matplotlib', 'data analysis',
-    'natural language processing', 'nlp', 'computer vision', 'opencv',
-    'sql', 'mysql', 'postgresql', 'mongodb', 'sqlite', 'redis', 'firebase',
-    'aws', 'azure', 'google cloud', 'docker', 'kubernetes', 'git', 'github',
-    'linux', 'ci/cd', 'jenkins','excel', 'powerpoint', 'figma', 'photoshop', 
-    'tableau', 'power bi','agile', 'scrum', 'jira', 'communication', 'leadership',
-    'teamwork',
-]
 
 # ─── REGISTER ───────────────────────────
 
@@ -57,13 +41,16 @@ def insert_data(request):
         phoneno  = request.POST.get("phone")
         course   = request.POST.get("course")
         cv_url      = None
+        cv_name     = ""
         profile_url = None
+        extracted_skills = ""
         fs = FileSystemStorage()
 
         cv = request.FILES.get('cv')
         if cv:
             extracted_skills = extract_skills_from_cv(cv)
             cv.seek(0)
+            cv_name = cv.name
             file   = fs.save(fs.get_available_name(cv.name), cv)
             cv_url = fs.url(file)
 
@@ -76,6 +63,7 @@ def insert_data(request):
         user = user_detail(
             full_name=name, Email=email, phoneno=phoneno,
             course=course, cv_url=cv_url, profile_url=profile_url,
+            cv_name=cv_name,
             user_pass=password, skills=extracted_skills,
         )
         user.save()
@@ -237,34 +225,6 @@ def reset_password(request):
  
     return JsonResponse({"ok": True}) 
  
-# ─── extract skills ─────────────────────────── 
- 
-def extract_skills_from_cv(cv_file):
-    try:
-        pdf_bytes = cv_file.read()
-        cv_file.seek(0)
-
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        full_text = ""
-        for page in doc:
-            full_text += page.get_text()
-        doc.close()
-
-        doc_nlp = nlp(full_text)
-        found_skills = []
-
-        for token in doc_nlp:
-            if token.pos_ in ["NOUN", "PROPN"]:
-                if token.text.lower() in [s.lower() for s in SKILLS_LIST]:
-                    found_skills.append(token.text.title())
-
-        unique_skills = list(dict.fromkeys(found_skills))
-        return ", ".join(unique_skills)
-
-    except Exception as e:
-        print(f"Skill extraction error: {e}")
-        return ""
-
 def _create_autologin_token(user):
     token = get_random_string(64)
     AutoLoginToken.objects.create(
@@ -322,11 +282,11 @@ def logout(request):
 
 def login_user(request):
     if request.method == "POST":
-        email       = request.POST.get("email")
+        email       = (request.POST.get("email") or "").strip()
         password    = request.POST.get("password")
         remember_me = request.POST.get("remember_me")
         try:
-            user = user_detail.objects.get(Email=email, user_pass=password)
+            user = user_detail.objects.get(Email__iexact=email, user_pass=password)
             request.session['userid'] = user.id
             request.session['role']   = user.role
             request.session['name']   = user.full_name
@@ -375,7 +335,21 @@ def user_dashboard(request):
     if user.skills:
         user_skills = [s.strip().lower() for s in user.skills.split(",")]
 
-    jobs = Job.objects.filter(status='open').order_by('id')
+    from .department_utils import (
+        filter_open_jobs_by_department,
+        resolve_department,
+        sort_jobs_for_candidate,
+    )
+
+    department = resolve_department(user.course)
+    if department:
+        jobs = sort_jobs_for_candidate(
+            filter_open_jobs_by_department(department),
+            department,
+            user.skills,
+        )
+    else:
+        jobs = []
 
     for job in jobs:
         if job.skills:
@@ -398,6 +372,9 @@ def user_dashboard(request):
     ).values_list('job_id_id', flat=True)
 
     applied_job_ids = list(applied_jobs)
+    user_applications = application.objects.filter(
+        user_id=user
+    ).select_related('job_id', 'job_id__company_id').order_by('-applied_at')
     
     assessments = get_assessment_context(user)
     completed_assessments = get_completeAssessment_context(user)
@@ -408,6 +385,7 @@ def user_dashboard(request):
         "skills":              user_skills,
         "company":             companies,
         "applied_job_ids":     applied_job_ids,
+        "user_applications":   user_applications,
         "notifications":       notifications,
         "unread_count":        notifications.filter(is_read=False).count(),
         "assessments":         assessments,
@@ -1196,20 +1174,20 @@ def send_notification_emails(approved_apps, subject, message, stage_label, job, 
 def get_assessment_context(user):
     approved_apps = application.objects.filter(
         user_id=user, status='approved'
-    ).select_related('job_id')
+    ).select_related('job_id', 'job_id__company_id')
 
     assessments = []
     for app in approved_apps:
-        if not any([app.mcq_date, app.machine_test_date, app.hr_interview_date]):
-            continue
         assessments.append({
             'job':               app.job_id,
+            'application_id':    app.id,
             'mcq_date':          app.mcq_date,
             'machine_test_date': app.machine_test_date,
             'hr_interview_date': app.hr_interview_date,
             'mcq_mark':          app.mcq_score,
             'machine_mark':      app.machine_test_score,
             'room_url':          app.get_room_url(),
+            'can_start_mcq':     app.mcq_score is None,
         })
     return assessments
 

@@ -43,13 +43,14 @@ CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']
 # Application definition
 
 INSTALLED_APPS = [
-    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'daphne',
     'django.contrib.staticfiles',
+    'corsheaders',
     'register',
     'django.contrib.sites',
     'allauth',
@@ -59,6 +60,7 @@ INSTALLED_APPS = [
     'mcq_exam',
     'm_test',
     'rest_framework',
+    'rest_framework.authtoken',
     'channels',
     'interview',
     'ai_interview',
@@ -67,6 +69,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'jr_system.api_middleware.ApiJsonErrorMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -100,16 +104,25 @@ WSGI_APPLICATION = 'jr_system.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-   'default':{
-        'ENGINE':'django.db.backends.postgresql',
-        'NAME':'jr_system',
-        'USER':'postgres',
-        'PASSWORD':'Bhagath@2003',
-        'HOST':'localhost',
-        'PORT':5432,
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_DB', 'jr_system'),
+            'USER': os.getenv('POSTGRES_USER', 'postgres'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+            'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+            'PORT': int(os.getenv('POSTGRES_PORT', 5432)),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -169,6 +182,11 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'bhagathsurendran54@gmail.com'
 EMAIL_HOST_PASSWORD = 'ltjv wzvq bvsy fbgs'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+CV_SKILL_AI_PROVIDER = os.getenv('CV_SKILL_AI_PROVIDER', 'auto')
+CV_SKILL_OPENAI_MODEL = os.getenv('CV_SKILL_OPENAI_MODEL', 'gpt-4o-mini')
+CV_SKILL_GROQ_MODEL = os.getenv('CV_SKILL_GROQ_MODEL', 'llama-3.3-70b-versatile')
 
 SITE_ID = 1
  
@@ -183,6 +201,18 @@ SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_EMAIL_REQUIRED = False
 SOCIALACCOUNT_QUERY_EMAIL = True
  
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+}
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
 ASGI_APPLICATION = 'jr_system.asgi.application'
  
 CHANNEL_LAYERS = {

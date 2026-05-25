@@ -3,7 +3,6 @@ import base64
 import tempfile
 import os
 from channels.generic.websocket import AsyncWebsocketConsumer
-from groq import AsyncGroq
 from django.conf import settings
 
 
@@ -11,6 +10,7 @@ class InterviewConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.job_role = self.scope['url_route']['kwargs']['job_role']
+        from groq import AsyncGroq
         self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
         self.audio_chunks = []
         self.conversation_history = []

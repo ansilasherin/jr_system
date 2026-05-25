@@ -752,20 +752,53 @@
     <div class="ph">
       <div><h1 class="ph-title">My Applications</h1><p class="ph-sub">Track the HR approval status of every application</p></div>
     </div>
-    <div class="tabs">
-      <button class="tab active">All <span class="tab-count">4</span></button>
-      <button class="tab">Pending</button>
-      <button class="tab">Approved</button>
-    </div>
     <div class="card">
       <div style="overflow-x:auto">
         <table class="app-table">
-          <thead><tr><th>Position</th><th>Applied On</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th>Position</th><th>Applied On</th><th>Status</th><th>MCQ</th><th>Details</th></tr></thead>
           <tbody>
-            <tr><td><div class="app-job-name">Data Analyst Intern</div><div class="app-company-name">TCS · Mumbai</div></td><td style="font-size:12px">Jan 18, 2025</td><td><span class="s-pill s-approved">Approved</span></td><td><button class="btn btn-outline" style="height:30px;font-size:11px;padding:0 14px">View Letter</button></td></tr>
-            <tr><td><div class="app-job-name">ML Engineer Intern</div><div class="app-company-name">Microsoft · Hybrid</div></td><td style="font-size:12px">Jan 22, 2025</td><td><span class="s-pill s-review">Under Review</span></td><td><button class="btn btn-ghost" style="height:30px;font-size:11px;padding:0 14px">Details</button></td></tr>
-            <tr><td><div class="app-job-name">Frontend Developer Intern</div><div class="app-company-name">Infosys · Chennai</div></td><td style="font-size:12px">Feb 01, 2025</td><td><span class="s-pill s-pending">Pending</span></td><td><button class="btn btn-ghost" style="height:30px;font-size:11px;padding:0 14px">Details</button></td></tr>
-            <tr><td><div class="app-job-name">Backend Developer Intern</div><div class="app-company-name">Wipro · Hyderabad</div></td><td style="font-size:12px">Dec 10, 2024</td><td><span class="s-pill s-rejected">Rejected</span></td><td><button class="btn btn-ghost" style="height:30px;font-size:11px;padding:0 14px">Feedback</button></td></tr>
+            {% for app in user_applications %}
+            <tr>
+              <td>
+                <div class="app-job-name">{{ app.job_id.job_title }}</div>
+                <div class="app-company-name">{{ app.job_id.company_id.company_name }} · {{ app.job_id.location }}</div>
+              </td>
+              <td style="font-size:12px">{{ app.applied_at|date:"M d, Y" }}</td>
+              <td>
+                {% if app.status == 'approved' %}
+                  <span class="s-pill s-approved">Approved</span>
+                {% elif app.status == 'under_review' %}
+                  <span class="s-pill s-review">Under Review</span>
+                {% elif app.status == 'rejected' %}
+                  <span class="s-pill s-rejected">Rejected</span>
+                {% elif app.status == 'mcq_completed' %}
+                  <span class="s-pill s-approved">MCQ Completed</span>
+                {% elif app.status == 'hired' %}
+                  <span class="s-pill s-approved">Hired</span>
+                {% else %}
+                  <span class="s-pill s-pending">Applied</span>
+                {% endif %}
+              </td>
+              <td style="font-size:12px">
+                {% if app.status == 'approved' and app.mcq_score is None %}
+                  <a href="{% url 'mcq_exam' app.job_id.id user.id %}" class="btn btn-dark" style="height:30px;font-size:11px;padding:0 14px;text-decoration:none;display:inline-flex;align-items:center">Take MCQ</a>
+                {% elif app.mcq_score is not None %}
+                  {{ app.mcq_score }}%
+                {% else %}
+                  Locked
+                {% endif %}
+              </td>
+              <td style="font-size:12px;max-width:260px;line-height:1.5">
+                <div><strong>Department:</strong> {{ app.job_id.department|default:"-" }}</div>
+                <div><strong>Skills:</strong> {{ app.job_id.skills }}</div>
+                <div style="margin-top:6px;color:var(--muted)">{{ app.job_id.description|truncatechars:140 }}</div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" style="padding:28px;text-align:center;color:var(--muted)">No applications yet. Apply to a job from the dashboard.</td>
+            </tr>
+            {% endfor %}
           </tbody>
         </table>
       </div>
@@ -989,11 +1022,15 @@
                       <div style="height:100%;background:{% if assess.mcq_mark >= 60 %}var(--black){% else %}#f87171{% endif %};width:{{ assess.mcq_mark }}%"></div>
                     </div>
                   </div>
-                {% else %}
+                {% elif assess.can_start_mcq %}
                   <a href="{% url 'mcq_exam' assess.job.id user.id %}" class="btn btn-dark"
                      style="width:100%;justify-content:center;font-size:11px;text-decoration:none;display:inline-flex;height:42px">
                     Start MCQ Exam →
                   </a>
+                {% else %}
+                  <div style="font-size:11px;color:var(--muted);text-align:center;padding:12px;border:1px dashed var(--ghost)">
+                    MCQ locked until HR approval
+                  </div>
                 {% endif %}
               </div>
             </div>

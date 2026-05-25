@@ -73,19 +73,44 @@ MCQ_TEST = {
 }
 
 
-def start_exam(request, job_id,user_id):
-    print(f"Starting exam for job_id: {job_id}")
-    print(f"Starting exam for user_id: {user_id}")
-    
-    app_id=application.objects.get(job_id=job_id,user_id=user_id)
-    print(f"Application ID: {app_id.id}")
-    
-    request.session['app_id'] = app_id.id
-    
-    return render(request, 'exam_start.html', {"title": MCQ_TEST["title"]})
+def start_exam(request, job_id, user_id):
+    try:
+        app_obj = application.objects.get(job_id=job_id, user_id=user_id)
+    except application.DoesNotExist:
+        return render(request, "exam_locked.html", {
+            "title": "MCQ Not Available",
+            "message": "No application was found for this job.",
+        })
+
+    if app_obj.status != "approved":
+        return render(request, "exam_locked.html", {
+            "title": "MCQ Locked",
+            "message": "MCQ will be available only after HR approves your application.",
+        })
+
+    if app_obj.mcq_score is not None:
+        return render(request, "exam_locked.html", {
+            "title": "MCQ Completed",
+            "message": "You have already completed the MCQ for this application.",
+        })
+
+    request.session["app_id"] = app_obj.id
+    request.session.modified = True
+    return render(request, "exam_start.html", {"title": MCQ_TEST["title"]})
 
 def exam_view(request):
-    print("Exam view accessed")
+    app_id = request.session.get("app_id")
+    if not app_id:
+        return render(request, "exam_locked.html", {
+            "title": "MCQ Not Available",
+            "message": "Start the MCQ from an approved application first.",
+        })
+    if not application.objects.filter(id=app_id, status="approved", mcq_score__isnull=True).exists():
+        return render(request, "exam_locked.html", {
+            "title": "MCQ Locked",
+            "message": "MCQ is available only after HR approval and before submission.",
+        })
+
     """Main exam page with randomized questions."""
     all_questions = MCQ_TEST["questions"].copy()
     random.shuffle(all_questions)

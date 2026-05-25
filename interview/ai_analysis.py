@@ -1,18 +1,35 @@
 import os
 import json
-from faster_whisper import WhisperModel
-from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
-whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
-groq_client   = Groq(api_key=os.getenv('GROQ_API_KEY'))
+whisper_model = None
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+groq_client = None
+
+
+def get_whisper_model():
+    global whisper_model
+    if whisper_model is None:
+        from faster_whisper import WhisperModel
+        whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
+    return whisper_model
+
+
+def get_groq_client():
+    global groq_client
+    if not GROQ_API_KEY:
+        return None
+    if groq_client is None:
+        from groq import Groq
+        groq_client = Groq(api_key=GROQ_API_KEY)
+    return groq_client
 
 def transcribe_audio(audio_file_path):
     """Transcribe audio locally using faster-whisper (free)"""
     print(f"[AI] Transcribing: {audio_file_path}")
-    segments, info = whisper_model.transcribe(audio_file_path)
+    segments, info = get_whisper_model().transcribe(audio_file_path)
     transcript = " ".join(segment.text for segment in segments)
     print(f"[AI] Transcript done: {transcript[:200]}")
     return transcript
@@ -45,7 +62,23 @@ Return a JSON object with exactly this structure:
 Return ONLY the JSON. No explanation. No markdown. No backticks.
 """
 
-    response = groq_client.chat.completions.create(
+    client = get_groq_client()
+    if not client:
+        print("[AI] GROQ_API_KEY not configured. Returning fallback analysis.")
+        return {
+            "overall_score": 0,
+            "summary": "Groq API key not configured. Analysis unavailable.",
+            "strengths": [],
+            "weaknesses": [],
+            "communication_score": 0,
+            "technical_score": 0,
+            "confidence_score": 0,
+            "recommendation": "neutral",
+            "key_quotes": [],
+            "hiring_notes": "AI interview analysis could not be generated because GROQ_API_KEY is missing.",
+        }
+
+    response = client.chat.completions.create(
         model = 'llama-3.3-70b-versatile',
         messages    = [{'role': 'user', 'content': prompt}],
         temperature = 0.3,

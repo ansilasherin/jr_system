@@ -1,0 +1,134 @@
+The Job Recruitment System is a modern mobile application developed using Flutter,
+designed to digitalize and simplify the entire recruitment process. In the traditional hiring
+model, candidates are required to travel to the company premises to attend interviews,
+which consumes considerable time, money, and effort from both the candidate and the
+organization. This application eliminates that limitation by enabling candidates to participate
+in recruitment processes entirely through their smartphones, from anywhere and at any time.
+The system provides a structured and user-friendly experience for both job seekers and HR
+personnel. Users can register on the platform, receive secure login credentials via email,
+upload their resume (CV), and explore job opportunities that match their skill set. The system
+employs intelligent skill extraction techniques to automatically identify relevant skills from the
+uploaded CV, enabling personalized job recommendations without manual filtering.
+PROJECT TITLE SMARTHIRE: INTELLIGENT INTERVIEW & RECRUITMENT
+MANAGEMENT SYSTEM
+PLATFORM / DOMAIN MOBILE APPLICATION / RECRUITMENT MANAGEMENT
+SYSTEM
+TECHNOLOGY FLUTTER (DART)
+ACADEMIC YEAR 2023-2026 (FINAL YEAR BCA)
+PROJECT GUIDE PROF.SATHYA
+( DEPARTMENT OF COMPUTER APPLICATION)
+SUBMITTED BY VISHNU K K (U03EX23S0027)
+From the HR side, the system provides tools to review candidate profiles, analyze CVs, and
+make approval decisions efficiently. Shortlisted candidates are then directed to an
+MCQ-based evaluation test, and the final hiring decision is made by the HR based on overall
+performance. The system is designed with scalability in mind — additional recruitment
+stages such as machine tests and online interviews are planned as future enhancements.
+3. PURPOSE
+The primary purpose of the Job Recruitment System is to provide an efficient, accessible,
+and fully digital platform for conducting recruitment processes. The specific objectives are:
+• To eliminate the need for physical presence during job recruitment.
+• To enable candidates to register, apply, and undergo evaluation through a single
+mobile application.
+• To automate the extraction of skills from uploaded CVs, reducing manual effort.
+• To provide personalized and skill-based job recommendations to candidates.
+• To assist HR personnel in screening, approving, and evaluating candidates
+efficiently.
+• To make the recruitment process transparent, fair, and time-saving for all
+stakeholders.
+• To create a centralized platform that connects job seekers and recruiters
+seamlessly.
+4. SCOPE OF THE PROJECT
+The Job Recruitment System is designed to serve two primary user groups: Job Seekers
+and HR Personnel. The scope of this project encompasses the following functionalities:
+ Candidate (Job Seeker) Scope
+• Secure registration and account creation with unique credentials.
+• Email-based login — username and password delivered to the candidate's email
+upon registration.
+• CV upload in supported formats through the mobile application.
+• Automatic skill extraction from the uploaded CV using text processing.
+• Display of relevant job vacancies filtered based on extracted skills.
+• Direct job application submission through the platform.
+• Participation in MCQ-based evaluation test if shortlisted by HR.
+ HR Scope
+• Secure HR login and dashboard access.
+• Review of candidate profiles and uploaded CVs.
+• Approval or rejection of candidate applications.
+• Conducting MCQ-based evaluation for approved candidates.
+• Evaluation of test results and final hiring decision.
+5. OVERVIEW
+This Software Requirements Specification (SRS) document provides a comprehensive
+description of the Job Recruitment System, outlining the system's purpose, features,
+functional requirements, and constraints. It serves as a guide for the development team and
+evaluators to understand the full scope and design of the project.
+The document is structured into the following major sections:
+• Overall Description — System perspective, product functions, user classes, and
+constraints.
+• Specific Requirements — Functional, non-functional, and interface requirements.
+6. OVERALL DESCRIPTION
+ Product Perspective
+The Job Recruitment System is a standalone mobile application built using the Flutter
+framework. It is designed to work efficiently on both Android and iOS platforms and provides
+a responsive, intuitive interface accessible to users with minimal technical knowledge.
+The system integrates multiple core functionalities — including user authentication, CV
+management, skill extraction, job recommendation, and recruitment evaluation — into a
+single, unified mobile platform. It communicates with a backend server using REST APIs,
+ensuring secure and efficient data exchange.
+• Clean and modern user interface with easy navigation.
+• Secure authentication using email-based credential delivery.
+• Efficient data handling and CV processing.
+• Scalable architecture allowing future feature additions.
+ Product Functions
+The key functions of the Job Recruitment System include:
+• User registration and secure email-based login.
+• CV upload and server-side storage.
+• Automatic extraction of skills from uploaded CV.
+• Skill-based job vacancy recommendations.
+• Job application submission by candidates.
+• HR review and approval/rejection of candidate applications.
+• MCQ-based candidate evaluation and scoring.
+• Final hiring decision by HR based on test performance.
+7. USER CLASSES AND CHARACTERISTICS
+ Job Seeker (Candidate)
+The job seeker is the primary end-user of the application. They interact with the system to
+find and apply for jobs that match their skills. Upon registration, they receive login credentials
+via email. They can upload their CV, view personalized job recommendations, and submit
+applications. If selected by HR, they attend an MCQ test within the app. Job seekers are
+expected to have basic smartphone usage knowledge.
+ HR Personnel
+The HR personnel act as the administrator of the recruitment process. They have the
+authority to log in to a dedicated HR dashboard, review submitted CVs, and make approval
+or rejection decisions. HR users can conduct MCQ evaluations and finalize hiring decisions
+based on candidate performance. They are expected to be familiar with digital tools and the
+standard recruitment workflow.
+8. GENERAL CONSTRAINTS
+• A stable internet connection is required for the application to function properly.
+• The application must run smoothly on Android and iOS mobile devices.
+• Uploaded CVs must be in supported and readable formats for skill extraction.
+• All user data must be securely stored and protected from unauthorized access.
+• The system must support multiple concurrent users without performance
+degradation.
+9. ASSUMPTIONS AND DEPENDENCIES
+• Users must possess a valid and active email address for registration.
+• Candidates must have access to a smartphone with Android or iOS operating
+system.
+• The system is dependent on consistent internet connectivity for all operations.
+• CV documents uploaded by candidates must be in a text-readable format.
+• Backend server and database must be operational and accessible at all times.
+10. SYSTEM WORKFLOW
+ Candidate Workflow
+• Step 1: Candidate registers on the application with personal details.
+• Step 2: Login credentials (username & password) are sent to the registered
+email.
+• Step 3: Candidate logs in using the received credentials.
+• Step 4: Candidate uploads their CV through the application.
+• Step 5: System automatically extracts relevant skills from the CV.
+• Step 6: Job vacancies are displayed based on the extracted skills.
+• Step 7: Candidate selects a suitable job and submits an application.
+• Step 8: If approved by HR, candidate attends the MCQ evaluation test.
+• Step 9: Final hiring decision is communicated after test evaluation.
+ HR Workflow
+• Step 1: HR logs in to the dedicated HR dashboard.
+• Step 2: HR reviews the list of applicants and their uploaded CVs.
+• Step 3: HR approves or rejects candidates based on CV review.
+• Step 4: Approved candidates are directed to take the MCQ test.
+• Step 5: HR evaluates MCQ results and makes final hiring decisions

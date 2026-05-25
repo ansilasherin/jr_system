@@ -10,6 +10,7 @@ class user_detail(models.Model):
     phoneno=models.CharField(max_length=15)
     course=models.CharField(max_length=100)
     cv_url=models.CharField(max_length=200)
+    cv_name=models.CharField(max_length=255, blank=True, default="")
     profile_url=models.CharField(max_length=200)
     user_pass=models.CharField(max_length=100)  
     role=models.CharField(max_length=20, default="user")
@@ -61,6 +62,7 @@ class Job(models.Model):
     deadline = models.DateField()
 
     skills = models.TextField(help_text="Comma separated skills")
+    department = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField()
 
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='open')
@@ -71,19 +73,26 @@ class Job(models.Model):
         return self.job_title
 
 class application(models.Model):
+    STATUS_CHOICES = [
+        ('applied', 'Applied'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('mcq_completed', 'MCQ Completed'),
+        ('hired', 'Hired'),
+        # Legacy values kept so old rows/admin pages do not break.
+        ('pending', 'Pending'),
+        ('under_review', 'Under Review'),
+        ('interview_completed', 'Interview Completed'),
+    ]
+
     user_id = models.ForeignKey(user_detail, on_delete=models.CASCADE)
     job_id = models.ForeignKey(Job, on_delete=models.CASCADE)
     match_score = models.IntegerField(default=0)
     applied_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
         max_length=20,
-        default='pending',
-        choices=[
-            ('pending','Pending'),
-            ('approved','Approved'),
-            ('rejected','Rejected'),
-            ('interview_completed',  'Interview Completed'),
-        ]
+        default='applied',
+        choices=STATUS_CHOICES,
     )
     mcq_score = models.FloatField(null=True, blank=True)
     machine_test_score = models.FloatField(null=True, blank=True)
@@ -128,3 +137,16 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.user.full_name}"
+
+
+class SavedJob(models.Model):
+    user = models.ForeignKey(user_detail, on_delete=models.CASCADE, related_name='saved_jobs')
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='saved_by')
+    saved_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'job')
+        ordering = ['-saved_at']
+
+    def __str__(self):
+        return f"{self.user.full_name} saved {self.job.job_title}"

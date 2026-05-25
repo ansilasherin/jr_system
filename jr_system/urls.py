@@ -28,5 +28,6 @@ urlpatterns = [
     path('m_test/', include('m_test.urls')),
     path('interview/', include('interview.urls')),
     path('ai_interview/', include('ai_interview.urls')),
-    
+    path('api/register/', include('register.api_urls')),
+    path('api/mcq/', include('mcq_exam.api_urls')),
 ] + static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
