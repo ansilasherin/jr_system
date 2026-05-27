@@ -20,7 +20,7 @@ from .department_utils import (
     sort_jobs_for_candidate,
 )
 from .models import AutoLoginToken, Employee, Job, Notification, SavedJob, application, user_detail
-from .cv_skills import extract_skills_from_cv
+from .cv_skills import analyze_cv, extract_skills_from_cv
 
 
 CANDIDATE_ROLE = "user"
@@ -274,6 +274,28 @@ def _skill_overlap_score(candidate_skills, job_skills):
     return int((len(common) / len(required_skills)) * 100)
 
 
+def _jobs_matching_skills(queryset, skills, department=""):
+    skill_terms = _skill_list(skills)
+    canonical_department = resolve_department(department)
+    filters = Q()
+    if canonical_department:
+        filters |= department_filter_q(canonical_department)
+    for skill in skill_terms:
+        filters |= Q(skills__icontains=skill) | Q(job_title__icontains=skill) | Q(description__icontains=skill)
+    if not filters:
+        return list(queryset)
+    return list(queryset.filter(filters).distinct())
+
+
+def _recommended_jobs_for_candidate(candidate, limit=10):
+    jobs = Job.objects.filter(status="open").select_related("company_id", "hr_id").order_by("-created_at")
+    if candidate.skills:
+        matched_jobs = _jobs_matching_skills(jobs, candidate.skills, candidate.course)
+    else:
+        matched_jobs = filter_open_jobs_by_department(candidate.course, limit=50)
+    return sort_jobs_for_candidate(matched_jobs, candidate.course, candidate.skills)[:limit]
+
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_register_candidate(request):
@@ -299,7 +321,10 @@ def api_register_candidate(request):
         cv_error = _validate_cv_file(cv)
         if cv_error:
             return JsonResponse({"success": False, "message": cv_error}, status=400)
-        skills = extract_skills_from_cv(cv)
+        analysis = analyze_cv(cv)
+        skills = _skills_to_text(analysis["skills"])
+        if not course and analysis.get("department"):
+            course = analysis["department"]
         cv.seek(0)
         cv_name = cv.name
         cv_url = fs.url(fs.save(fs.get_available_name(cv.name), cv))
@@ -358,7 +383,13 @@ def api_register_hr(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_login(request):
-    data = request.POST.dict() if request.POST else _json_body(request)
+    content_type = (request.content_type or "").lower()
+    if "application/json" in content_type:
+        data = _json_body(request)
+    elif request.POST:
+        data = request.POST.dict()
+    else:
+        data = _json_body(request)
     if data is None:
         return JsonResponse({"success": False, "message": "Invalid JSON."}, status=400)
 
@@ -414,7 +445,11 @@ def api_profile(request):
             cv_error = _validate_cv_file(cv)
             if cv_error:
                 return JsonResponse({"success": False, "message": cv_error}, status=400)
-            user.skills = extract_skills_from_cv(cv)
+            analysis = analyze_cv(cv)
+            user.skills = _skills_to_text(analysis["skills"])
+            inferred_department = resolve_department(analysis.get("department"))
+            if inferred_department:
+                user.course = inferred_department
             cv.seek(0)
             user.cv_name = cv.name
             user.cv_url = fs.url(fs.save(fs.get_available_name(cv.name), cv))
@@ -439,16 +474,26 @@ def api_extract_skills(request):
     if cv_error:
         return JsonResponse({"success": False, "message": cv_error}, status=400)
 
-    skills = extract_skills_from_cv(cv)
+    analysis = analyze_cv(cv)
+    skills = _skills_to_text(analysis["skills"])
     cv.seek(0)
     fs = FileSystemStorage()
     user.cv_url = fs.url(fs.save(fs.get_available_name(cv.name), cv))
     user.cv_name = cv.name
     user.skills = skills
+    inferred_department = resolve_department(analysis.get("department"))
+    if inferred_department:
+        user.course = inferred_department
     user.save()
+    recommended_jobs = _recommended_jobs_for_candidate(user)
     return JsonResponse({
         "success": True,
         "skills": _candidate_payload(user)["skills"],
+        "technologies": analysis.get("technologies", []),
+        "department": inferred_department or user.course or "",
+        "experience": analysis.get("experience", ""),
+        "user": _candidate_payload(user),
+        "recommended_jobs": [_job_payload(job, user) for job in recommended_jobs],
         "cv_url": user.cv_url,
         "cv_name": user.cv_name,
     })
@@ -485,16 +530,30 @@ def api_job_list(request):
     if wants_skill_match:
         if not user or user.role != CANDIDATE_ROLE:
             return JsonResponse({"success": False, "message": "Candidate authentication required."}, status=401)
-        if not department:
-            return JsonResponse(
-                {
-                    "success": False,
-                    "message": "Set your department/course on your profile to see matching jobs.",
-                },
-                status=400,
-            )
         user_skills = request.GET.get("match_skills") or user.skills
-        sorted_jobs = sort_jobs_for_candidate(list(jobs), department, user_skills)
+        if user_skills:
+            base_jobs = Job.objects.filter(status="open").select_related("company_id", "hr_id").order_by("-created_at")
+            if query:
+                base_jobs = base_jobs.filter(
+                    Q(job_title__icontains=query) | Q(skills__icontains=query) | Q(location__icontains=query)
+                )
+            if location:
+                base_jobs = base_jobs.filter(location__icontains=location)
+            sorted_jobs = sort_jobs_for_candidate(
+                _jobs_matching_skills(base_jobs, user_skills, department),
+                department,
+                user_skills,
+            )
+        else:
+            if not department:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "message": "Upload a CV or set your department/course to see matching jobs.",
+                    },
+                    status=400,
+                )
+            sorted_jobs = sort_jobs_for_candidate(list(jobs), department, user_skills)
         paginator = Paginator(sorted_jobs, page_size)
         if paginator.count == 0:
             return _empty_jobs_response(page, page_size)
@@ -744,9 +803,7 @@ def api_candidate_dashboard(request):
     if error:
         return error
 
-    course_value = user.course.strip() if user.course else ""
-    matched_jobs = filter_open_jobs_by_department(course_value, limit=50)
-    matched_jobs = sort_jobs_for_candidate(matched_jobs, course_value, user.skills)[:10]
+    matched_jobs = _recommended_jobs_for_candidate(user, limit=10)
     recent_apps = application.objects.filter(user_id=user).select_related(
         "user_id", "job_id", "job_id__company_id"
     ).order_by("-applied_at")[:5]

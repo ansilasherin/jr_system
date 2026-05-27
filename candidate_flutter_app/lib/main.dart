@@ -3,14 +3,18 @@ import 'package:provider/provider.dart';
 
 import 'src/app.dart';
 import 'src/core/network/api_client.dart';
+import 'src/core/network/api_config.dart';
 import 'src/features/candidate/data/candidate_repository.dart';
 import 'src/features/candidate/presentation/view_models/auth_view_model.dart';
 import 'src/features/candidate/presentation/view_models/applications_view_model.dart';
 import 'src/features/candidate/presentation/view_models/dashboard_view_model.dart';
 import 'src/features/candidate/presentation/view_models/hr_dashboard_view_model.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ApiConfig.initialize();
   final apiClient = ApiClient();
+  await apiClient.loadSavedServerUrl();
   final repository = CandidateRepository(apiClient);
 
   runApp(

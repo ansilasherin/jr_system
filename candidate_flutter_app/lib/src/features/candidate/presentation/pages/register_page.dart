@@ -124,7 +124,8 @@ class _RegisterPageState extends State<RegisterPage> {
                               )
                               .toList(),
                       onChanged:
-                          (value) => setState(() => _selectedDepartment = value),
+                          (value) =>
+                              setState(() => _selectedDepartment = value),
                       validator:
                           (value) =>
                               value == null || value.isEmpty
@@ -149,7 +150,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     OutlinedButton.icon(
                       onPressed: vm.loading ? null : _pickCv,
                       icon: const Icon(Icons.upload_file_rounded),
-                      label: Text(_cv?.name ?? 'Attach CV (optional)'),
+                      label: Text(_cv?.name ?? 'Attach CV '),
                     ),
                     if (vm.error != null) ...[
                       const SizedBox(height: 14),

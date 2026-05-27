@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:candidate_flutter_app/src/app.dart';
 import 'package:candidate_flutter_app/src/core/network/api_client.dart';
+import 'package:candidate_flutter_app/src/core/network/api_config.dart';
 import 'package:candidate_flutter_app/src/features/candidate/data/candidate_repository.dart';
 import 'package:candidate_flutter_app/src/features/candidate/presentation/view_models/applications_view_model.dart';
 import 'package:candidate_flutter_app/src/features/candidate/presentation/view_models/auth_view_model.dart';
@@ -18,6 +19,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
+    await ApiConfig.initialize();
     final repository = CandidateRepository(ApiClient());
 
     await tester.pumpWidget(
@@ -37,9 +39,10 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    expect(find.text('Candidate Login'), findsOneWidget);
+    expect(find.text('Candidate sign in'), findsOneWidget);
     expect(find.text('Candidate'), findsOneWidget);
     expect(find.text('HR'), findsOneWidget);
     expect(find.byIcon(Icons.mail_outline_rounded), findsOneWidget);
@@ -47,7 +50,7 @@ void main() {
     await tester.tap(find.text('HR'));
     await tester.pump();
 
-    expect(find.text('HR Login'), findsOneWidget);
-    expect(find.text('Login as HR'), findsOneWidget);
+    expect(find.text('HR sign in'), findsOneWidget);
+    expect(find.text('Sign in as HR'), findsOneWidget);
   });
 }

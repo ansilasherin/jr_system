@@ -37,6 +37,8 @@ class DashboardViewModel extends ChangeNotifier {
 
   bool get hasDepartment => departmentFilter != null && departmentFilter!.isNotEmpty;
 
+  bool get canRecommendJobs => hasDepartment || skills.isNotEmpty;
+
   Future<void> loadDashboard() async {
     loading = true;
     error = null;
@@ -67,7 +69,7 @@ class DashboardViewModel extends ChangeNotifier {
 
   Future<void> _loadDepartmentJobs({List<JobModel>? fallbackJobs}) async {
     final department = departmentFilter;
-    if (department == null || department.isEmpty) {
+    if ((department == null || department.isEmpty) && skills.isEmpty) {
       jobs = [];
       hasNext = false;
       return;
@@ -120,7 +122,9 @@ class DashboardViewModel extends ChangeNotifier {
         uploadProgress = progress.clamp(0, 1);
         notifyListeners();
       });
-      hasUploadedCvThisSession = true;
+      profile = await _repository.fetchProfile();
+      skills = profile?.skills ?? skills;
+      hasUploadedCvThisSession = profile?.hasCv == true || skills.isNotEmpty;
       successMessage = 'CV uploaded and skills extracted successfully.';
       await refreshJobs();
     } catch (e) {
@@ -137,7 +141,7 @@ class DashboardViewModel extends ChangeNotifier {
   }
 
   Future<void> refreshJobs() async {
-    if (!hasDepartment) {
+    if (!canRecommendJobs) {
       jobs = [];
       hasNext = false;
       notifyListeners();
@@ -148,7 +152,7 @@ class DashboardViewModel extends ChangeNotifier {
   }
 
   Future<void> loadMoreJobs() async {
-    if (!hasDepartment || loadingMore || !hasNext) return;
+    if (!canRecommendJobs || loadingMore || !hasNext) return;
     loadingMore = true;
     notifyListeners();
     try {
@@ -242,8 +246,8 @@ class DashboardViewModel extends ChangeNotifier {
 
   String _cleanError(Object error) {
     final message = error.toString().replaceFirst('Exception: ', '');
-    if (message.startsWith('DioException')) {
-      return 'Server request failed. Please try again.';
+    if (message.startsWith('DioException') || message.startsWith('ApiException')) {
+      return message.replaceFirst('ApiException: ', '');
     }
     return message;
   }

@@ -80,8 +80,8 @@ class HrDashboardViewModel extends ChangeNotifier {
 
   String _cleanError(Object error) {
     final message = error.toString().replaceFirst('Exception: ', '');
-    if (message.startsWith('DioException')) {
-      return 'Server request failed. Please try again.';
+    if (message.startsWith('DioException') || message.startsWith('ApiException')) {
+      return message.replaceFirst('ApiException: ', '');
     }
     return message;
   }

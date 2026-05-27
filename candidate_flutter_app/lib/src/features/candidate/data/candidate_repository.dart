@@ -21,33 +21,26 @@ class CandidateRepository {
     String password, {
     String? expectedRole,
   }) async {
-    try {
-      final response = await _client.post(
-        '/auth/login/',
-        data: {'email': email, 'password': password},
-      );
-      final data = _expectSuccess(response);
-      await _client.saveToken(data['token'] as String);
-      final user = CandidateUser.fromJson(
+    final response = await _client.post(
+      '/auth/login/',
+      data: {'email': email, 'password': password},
+    );
+    final data = _expectSuccess(response);
+    final user = await _normalizeUser(
+      CandidateUser.fromJson(
         Map<String, dynamic>.from(data['user'] as Map),
+      ),
+    );
+    if (expectedRole != null && user.role != expectedRole) {
+      throw ApiException(
+        expectedRole == 'hr'
+            ? 'This account is not an HR account.'
+            : 'This account is not a candidate account.',
       );
-      await _client.saveSessionRole(user.role);
-      return user;
-    } on DioException catch (e) {
-      if (!_isNetworkFailure(e)) rethrow;
-      if (expectedRole == 'hr') {
-        throw ApiException(
-          'Cannot connect to HR server at ${ApiConfig.rootUrl}. Start the backend or set API_ROOT_URL to the correct server address.',
-        );
-      }
-      final mockUser =
-          expectedRole == 'hr'
-              ? SampleCandidateData.hrProfile
-              : SampleCandidateData.profile;
-      await _client.saveToken('mock-${mockUser.role}-token');
-      await _client.saveSessionRole(mockUser.role);
-      return mockUser;
     }
+    await _client.saveToken(data['token'] as String);
+    await _client.saveSessionRole(user.role);
+    return user;
   }
 
   Future<CandidateUser> registerCandidate({
@@ -103,11 +96,59 @@ class CandidateRepository {
 
   Future<void> logout() => _client.clearToken();
 
-  Future<String?> savedSessionRole() async {
+  Future<void> saveServerUrl(String url) => _client.saveServerUrl(url);
+
+  Future<String?> getServerUrl() => _client.getConfiguredServerUrl();
+
+  /// Fast local check for startup routing (no network).
+  Future<String?> quickSessionRole() async {
     final token = await _client.getToken();
-    if (token == null || token.isEmpty) return null;
-    return _client.getSessionRole();
+    if (token == null || token.isEmpty || token.startsWith('mock-')) {
+      await _client.clearToken();
+      return null;
+    }
+    final role = await _client.getSessionRole();
+    if (role == 'hr' || role == 'user') return role;
+    return null;
   }
+
+  Future<CandidateUser?> restoreSession() async {
+    final token = await _client.getToken();
+    if (token == null || token.isEmpty || token.startsWith('mock-')) {
+      await _client.clearToken();
+      return null;
+    }
+    try {
+      return await fetchProfile().timeout(const Duration(seconds: 8));
+    } on ApiException catch (e) {
+      if (e.message.toLowerCase().contains('authentication')) {
+        await _client.clearToken();
+      }
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        await _client.clearToken();
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<CandidateUser> fetchProfile() async {
+    final response = await _client.get(
+      '/candidate/profile/',
+      singleHost: true,
+    );
+    final data = _expectSuccess(response);
+    final user = CandidateUser.fromJson(
+      Map<String, dynamic>.from(data['user'] as Map),
+    );
+    await _client.saveSessionRole(user.role);
+    return _normalizeUser(user);
+  }
+
+  Future<String?> savedSessionRole() => quickSessionRole();
 
   Future<DashboardBundle> dashboard() async {
     try {
@@ -145,7 +186,9 @@ class CandidateRepository {
     } on DioException catch (e) {
       if (!_isNetworkFailure(e)) rethrow;
       onProgress(1);
-      return SampleCandidateData.skillsForCv(cv.name);
+      throw ApiException(
+        'Cannot analyze CV without connecting to the JR System backend.',
+      );
     }
   }
 
@@ -174,20 +217,15 @@ class CandidateRepository {
         },
       );
       return JobsPage.fromJson(_expectSuccess(response));
-    } on DioException catch (e) {
+    }
+    on DioException catch (e) {
       if (!_isNetworkFailure(e)) rethrow;
-      return SampleCandidateData.jobsPage(
-        page: page,
-        query: query,
-        location: location,
-        department: department,
-        selectedSkills: skills,
-        matchSkills: matchSkills,
-        skillMatch: skillMatch,
+      throw ApiException(
+        'Cannot load job recommendations without connecting to the JR System backend.',
       );
     }
   }
-
+  
   Future<ApplicationModel> applyJob(int jobId) async {
     try {
       final response = await _client.post(
@@ -340,5 +378,24 @@ class CandidateRepository {
         error.type == DioExceptionType.receiveTimeout ||
         error.type == DioExceptionType.sendTimeout ||
         error.type == DioExceptionType.unknown;
+  }
+
+  Future<CandidateUser> _normalizeUser(CandidateUser user) async {
+    final root = await _client.getActiveRootUrl() ?? ApiConfig.rootUrl;
+    return CandidateUser(
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+      course: user.course,
+      cvUrl: user.cvUrl == null ? null : ApiConfig.absoluteUrl(user.cvUrl, root),
+      cvName: user.cvName,
+      profileUrl:
+          user.profileUrl == null
+              ? null
+              : ApiConfig.absoluteUrl(user.profileUrl, root),
+      skills: user.skills,
+    );
   }
 }

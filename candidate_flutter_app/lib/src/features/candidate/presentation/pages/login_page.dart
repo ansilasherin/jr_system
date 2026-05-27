@@ -31,20 +31,21 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AuthViewModel>();
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
+            constraints: const BoxConstraints(maxWidth: 420),
             child: Container(
-              padding: const EdgeInsets.all(26),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(22),
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Theme.of(context).dividerColor.withValues(alpha: .35),
+                  color: theme.dividerColor.withValues(alpha: .3),
                 ),
               ),
               child: Form(
@@ -54,16 +55,28 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _loginRole == 'hr' ? 'HR Login' : 'Candidate Login',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.w900),
+                      'JR Recruitment',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _loginRole == 'hr' ? 'HR sign in' : 'Candidate sign in',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Continue to candidate matching or HR review.',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      'Access your dashboard with your registered email.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
                     SegmentedButton<String>(
                       segments: const [
                         ButtonSegment(
@@ -87,10 +100,11 @@ class _LoginPageState extends State<LoginPage> {
                                 });
                               },
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Email',
                         prefixIcon: Icon(Icons.mail_outline_rounded),
@@ -105,6 +119,10 @@ class _LoginPageState extends State<LoginPage> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: true,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) {
+                        if (!vm.loading) _submit();
+                      },
                       decoration: const InputDecoration(
                         labelText: 'Password',
                         prefixIcon: Icon(Icons.lock_outline_rounded),
@@ -119,9 +137,7 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 14),
                       Text(
                         vm.error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
+                        style: TextStyle(color: theme.colorScheme.error),
                       ),
                     ],
                     const SizedBox(height: 24),
@@ -137,8 +153,8 @@ class _LoginPageState extends State<LoginPage> {
                               )
                               : Text(
                                 _loginRole == 'hr'
-                                    ? 'Login as HR'
-                                    : 'Login as Candidate',
+                                    ? 'Sign in as HR'
+                                    : 'Sign in',
                               ),
                     ),
                     const SizedBox(height: 10),
@@ -150,7 +166,7 @@ class _LoginPageState extends State<LoginPage> {
                                 : () => Navigator.of(
                                   context,
                                 ).pushNamed(RegisterPage.route),
-                        child: const Text('Create candidate account'),
+                        child: const Text('Create an account'),
                       ),
                   ],
                 ),

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/api_config.dart';
 import '../../domain/models/job_model.dart';
+import '../view_models/auth_view_model.dart';
 import '../view_models/dashboard_view_model.dart';
 import '../widgets/cv_upload_card.dart';
 import '../widgets/dashboard_skeleton.dart';
@@ -36,7 +37,9 @@ class _CandidateDashboardPageState extends State<CandidateDashboardPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await context.read<AuthViewModel>().ensureUserLoaded();
+      if (!mounted) return;
       context.read<DashboardViewModel>().loadDashboard();
     });
     _scrollController.addListener(() {
@@ -454,11 +457,11 @@ class _JobsColumn extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (!vm.hasDepartment)
+        if (!vm.canRecommendJobs)
           const EmptyState(
-            title: 'Department not set',
+            title: 'Upload your CV',
             message:
-                'Update your profile with a department (Flutter, Python, UI/UX, etc.) to see relevant jobs.',
+                'Upload your CV or set your department to see AI-ranked job recommendations.',
           )
         else ...[
           TextField(
@@ -474,7 +477,9 @@ class _JobsColumn extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  '${vm.departmentFilter} Jobs',
+                  vm.hasDepartment
+                      ? '${vm.departmentFilter} Jobs'
+                      : 'AI Recommended Jobs',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
@@ -491,10 +496,13 @@ class _JobsColumn extends StatelessWidget {
           const SizedBox(height: 10),
           if (vm.jobs.isEmpty)
             EmptyState(
-              title: 'No ${vm.departmentFilter} jobs yet',
+              title:
+                  vm.hasDepartment
+                      ? 'No ${vm.departmentFilter} jobs yet'
+                      : 'No AI matches yet',
               message:
                   vm.hasUploadedCvThisSession
-                      ? 'Try adjusting search or filters. Uploading a CV helps rank jobs inside your department.'
+                      ? 'Try adjusting search or filters. Recommendations are ranked from your extracted CV skills.'
                       : 'No open vacancies for your department right now. Upload your CV to improve match ranking.',
             )
           else

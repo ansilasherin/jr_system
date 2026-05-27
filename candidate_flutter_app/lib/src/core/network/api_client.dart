@@ -1,14 +1,18 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_config.dart';
+import '../result/api_exception.dart';
 
 class ApiClient {
   ApiClient()
     : _dio = Dio(
         BaseOptions(
-          connectTimeout: const Duration(seconds: 10),
+          connectTimeout: const Duration(seconds: 5),
           sendTimeout: const Duration(seconds: 30),
           receiveTimeout: const Duration(seconds: 30),
           validateStatus: (status) => status != null && status < 600,
@@ -20,18 +24,51 @@ class ApiClient {
   static const _tokenKey = 'candidate_token';
   static const _roleKey = 'session_role';
   static const _activeRootKey = 'active_api_root_url';
+
   String? _overrideRootUrl;
 
   void setOverrideRootUrl(String? url) {
-    final trimmed = url?.trim();
-    if (trimmed == null || trimmed.isEmpty) {
-      _overrideRootUrl = null;
+    _overrideRootUrl = ApiConfig.normalizeHost(url);
+  }
+
+  Future<void> loadSavedServerUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    setOverrideRootUrl(prefs.getString(ApiConfig.serverUrlPrefsKey));
+    await _sanitizeActiveRoot(prefs);
+  }
+
+  Future<void> _sanitizeActiveRoot(SharedPreferences prefs) async {
+    final active = prefs.getString(_activeRootKey);
+    if (active == null || active.isEmpty) return;
+    if (!kIsWeb &&
+        Platform.isAndroid &&
+        !ApiConfig.isAndroidEmulator &&
+        ApiConfig.isLocalhostHost(active)) {
+      await prefs.remove(_activeRootKey);
+    }
+  }
+
+  Future<void> saveServerUrl(String? url) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (url == null || url.trim().isEmpty) {
+      await prefs.remove(ApiConfig.serverUrlPrefsKey);
+      setOverrideRootUrl(null);
       return;
     }
-    _overrideRootUrl =
-        trimmed.startsWith('http://') || trimmed.startsWith('https://')
-            ? trimmed.replaceAll(RegExp(r'/+$'), '')
-            : 'http://${trimmed.replaceAll(RegExp(r'/+$'), '')}';
+    setOverrideRootUrl(url);
+    await prefs.setString(ApiConfig.serverUrlPrefsKey, _overrideRootUrl!);
+  }
+
+  Future<String?> getActiveRootUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_activeRootKey) ?? _overrideRootUrl ?? ApiConfig.rootUrl;
+  }
+
+  Future<String?> getConfiguredServerUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(ApiConfig.serverUrlPrefsKey) ??
+        _overrideRootUrl ??
+        ApiConfig.rootUrls.firstOrNull;
   }
 
   Future<void> saveToken(String token) async {
@@ -39,21 +76,20 @@ class ApiClient {
     await prefs.setString(_tokenKey, token);
     try {
       await _storage.write(key: _tokenKey, value: token);
-    } catch (_) {
-      // Web secure storage can be unavailable outside a supported browser
-      // context. SharedPreferences keeps the web session authenticated.
-    }
+    } catch (_) {}
   }
 
   Future<String?> getToken() async {
-    try {
-      final token = await _storage.read(key: _tokenKey);
-      if (token != null && token.isNotEmpty) return token;
-    } catch (_) {
-      // Fall through to the SharedPreferences copy.
-    }
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    final cached = prefs.getString(_tokenKey);
+    if (cached != null && cached.isNotEmpty) return cached;
+    try {
+      final token = await _storage
+          .read(key: _tokenKey)
+          .timeout(const Duration(seconds: 3));
+      if (token != null && token.isNotEmpty) return token;
+    } catch (_) {}
+    return null;
   }
 
   Future<void> saveSessionRole(String role) async {
@@ -72,24 +108,33 @@ class ApiClient {
     await prefs.remove(_roleKey);
     try {
       await _storage.delete(key: _tokenKey);
-    } catch (_) {
-      // Ignore storage backends that are unavailable on this platform.
-    }
+    } catch (_) {}
   }
 
   Future<Response<dynamic>> get(
     String path, {
     Map<String, dynamic>? query,
+    bool mcq = false,
+    bool singleHost = false,
   }) async {
-    return _request('GET', path, query: query);
+    return _request('GET', path, query: query, mcq: mcq, singleHost: singleHost);
   }
 
   Future<Response<dynamic>> post(
     String path, {
     dynamic data,
     ProgressCallback? onSendProgress,
+    bool mcq = false,
+    bool singleHost = false,
   }) async {
-    return _request('POST', path, data: data, onSendProgress: onSendProgress);
+    return _request(
+      'POST',
+      path,
+      data: data,
+      onSendProgress: onSendProgress,
+      mcq: mcq,
+      singleHost: singleHost,
+    );
   }
 
   Future<Response<dynamic>> delete(String path) async {
@@ -102,51 +147,67 @@ class ApiClient {
     Map<String, dynamic>? query,
     dynamic data,
     ProgressCallback? onSendProgress,
+    bool mcq = false,
+    bool singleHost = false,
   }) async {
-    final roots = await _orderedRoots();
+    final roots = await _orderedRoots(singleHost: singleHost);
+    if (roots.isEmpty) {
+      throw ApiException(ApiConfig.connectionHelpMessage());
+    }
+
     DioException? lastNetworkError;
+
     for (final root in roots) {
       try {
         final response = await _dio.request<dynamic>(
-          _urlFor(root, path),
+          _urlFor(root, path, mcq: mcq),
           data: data,
           queryParameters: query,
-          options: await _authOptions(method),
+          options: await _authOptions(method, data),
           onSendProgress: onSendProgress,
         );
         await _saveActiveRoot(root);
         return response;
       } on DioException catch (e) {
-        if (!_isNetworkFailure(e)) rethrow;
+        if (!_isNetworkFailure(e)) {
+          throw _toApiException(e);
+        }
         lastNetworkError = e;
       }
     }
-    throw lastNetworkError ??
-        DioException(
-          requestOptions: RequestOptions(path: path),
-          type: DioExceptionType.connectionError,
-        );
+
+    throw _toApiException(lastNetworkError);
   }
 
-  Future<List<String>> _orderedRoots() async {
+  Future<List<String>> _orderedRoots({bool singleHost = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final activeRoot = prefs.getString(_activeRootKey);
-    final definedRoots = ApiConfig.rootUrls;
     final roots = <String>[];
-    // If an override root is set at runtime (phone input), prefer it first.
     if (_overrideRootUrl != null && _overrideRootUrl!.isNotEmpty) {
       roots.add(_overrideRootUrl!);
     }
-    // Prefer the last successful server so every request does not wait on
-    // dead fallback URLs first.
     if (activeRoot != null &&
         activeRoot.isNotEmpty &&
-        !roots.contains(activeRoot)) {
+        !roots.contains(activeRoot) &&
+        _isValidRootForDevice(activeRoot)) {
       roots.add(activeRoot);
     }
-    // Keep configured roots as fallbacks for IP/backend changes.
-    roots.addAll(definedRoots);
+    if (singleHost) {
+      if (roots.isEmpty && ApiConfig.rootUrls.isNotEmpty) {
+        roots.add(ApiConfig.rootUrls.first);
+      }
+      return roots.toSet().toList();
+    }
+    roots.addAll(ApiConfig.rootUrls.where(_isValidRootForDevice));
     return roots.toSet().toList();
+  }
+
+  bool _isValidRootForDevice(String root) {
+    if (kIsWeb) return true;
+    if (Platform.isAndroid && !ApiConfig.isAndroidEmulator) {
+      return !ApiConfig.isLocalhostHost(root);
+    }
+    return true;
   }
 
   Future<void> _saveActiveRoot(String root) async {
@@ -154,29 +215,44 @@ class ApiClient {
     await prefs.setString(_activeRootKey, root);
   }
 
-  String _urlFor(String root, String path) {
+  String _urlFor(String root, String path, {required bool mcq}) {
     final uri = Uri.tryParse(path);
     if (uri != null && uri.hasScheme) return path;
-    if (path.startsWith('/api/')) return '$root$path';
-    return '$root/api/register$path';
+    final normalizedRoot = root.replaceAll(RegExp(r'/+$'), '');
+    if (path.startsWith('/api/')) return '$normalizedRoot$path';
+    if (mcq) return '$normalizedRoot${ApiConfig.mcqApiPath(path)}';
+    return '$normalizedRoot${ApiConfig.registerApiPath(path)}';
   }
 
   bool _isNetworkFailure(DioException error) {
     return error.type == DioExceptionType.connectionError ||
         error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout ||
-        error.type == DioExceptionType.sendTimeout ||
-        error.type == DioExceptionType.unknown;
+        error.type == DioExceptionType.sendTimeout;
   }
 
-  Future<Options> _authOptions(String method) async {
+  ApiException _toApiException(DioException? error) {
+    final response = error?.response;
+    if (response?.data is Map) {
+      final data = Map<String, dynamic>.from(response!.data as Map);
+      final message = data['message'] as String?;
+      if (message != null && message.isNotEmpty) {
+        return ApiException(message);
+      }
+    }
+    return ApiException(ApiConfig.connectionHelpMessage());
+  }
+
+  Future<Options> _authOptions(String method, dynamic data) async {
     final token = await getToken();
     return Options(
       method: method,
       headers: {
         'Accept': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
       },
+      contentType:
+          (data is Map || data is List) ? Headers.jsonContentType : null,
     );
   }
 }

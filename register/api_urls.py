@@ -23,6 +23,7 @@ urlpatterns = [
     path("applications/", api.api_applications, name="api_applications"),
     path("applications/apply/", api.api_apply_job, name="api_apply_job"),
     path("candidate/applications/", api.api_my_applications, name="api_candidate_applications"),
+    path("applications/mine/", api.api_my_applications, name="api_my_applications_alias"),
 
     path("hr/applications/", api.api_hr_applications, name="api_hr_applications"),
     path("hr/applications/<int:app_id>/", api.api_update_application_status, name="api_update_application_status_flutter"),

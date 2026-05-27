@@ -1,10 +1,51 @@
 import json
 import random
+from django.core.cache import cache
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from register.models import AutoLoginToken, application
 from .views import MCQ_TEST
+
+MCQ_CACHE_TTL = 60 * 60 * 2  # 2 hours
+
+
+def _mcq_answers_cache_key(application_id):
+    return f'mcq_answers_{application_id}'
+
+
+def _mcq_total_cache_key(application_id):
+    return f'mcq_total_{application_id}'
+
+
+def _store_mcq_exam_state(application_id, selected_questions):
+    answer_key = {str(q['id']): q['answer'] for q in selected_questions}
+    total = len(selected_questions)
+    cache.set(_mcq_answers_cache_key(application_id), answer_key, MCQ_CACHE_TTL)
+    cache.set(_mcq_total_cache_key(application_id), total, MCQ_CACHE_TTL)
+    return answer_key, total
+
+
+def _load_mcq_exam_state(request, application_id, submitted_count=0):
+    answer_key = cache.get(_mcq_answers_cache_key(application_id))
+    total = cache.get(_mcq_total_cache_key(application_id))
+    if answer_key is None:
+        answer_key = request.session.get(f'mcq_answers_{application_id}')
+    if total is None:
+        total = request.session.get(f'mcq_total_{application_id}')
+    if not answer_key:
+        answer_key = {str(q['id']): q['answer'] for q in MCQ_TEST['questions']}
+    if not total:
+        total = submitted_count or len(answer_key) or 1
+    return answer_key, total
+
+
+def _clear_mcq_exam_state(request, application_id):
+    cache.delete(_mcq_answers_cache_key(application_id))
+    cache.delete(_mcq_total_cache_key(application_id))
+    request.session.pop(f'mcq_answers_{application_id}', None)
+    request.session.pop(f'mcq_total_{application_id}', None)
+    request.session.modified = True
 
 
 def _token_from_request(request):
@@ -79,8 +120,9 @@ def api_application_questions(request, application_id):
         return error
 
     selected = _random_questions()
-    request.session[f'mcq_answers_{app_obj.id}'] = {str(q['id']): q['answer'] for q in selected}
-    request.session[f'mcq_total_{app_obj.id}'] = len(selected)
+    answer_key, total = _store_mcq_exam_state(app_obj.id, selected)
+    request.session[f'mcq_answers_{app_obj.id}'] = answer_key
+    request.session[f'mcq_total_{app_obj.id}'] = total
     request.session.modified = True
     return JsonResponse({
         'success': True,
@@ -105,11 +147,11 @@ def api_application_submit(request, application_id):
     if not isinstance(submitted_answers, list):
         return JsonResponse({'success': False, 'message': 'answers must be a list.'}, status=400)
 
-    answer_key = request.session.get(f'mcq_answers_{app_obj.id}')
-    if not answer_key:
-        answer_key = {str(q['id']): q['answer'] for q in MCQ_TEST['questions']}
-
-    total = request.session.get(f'mcq_total_{app_obj.id}') or len(submitted_answers) or 1
+    answer_key, total = _load_mcq_exam_state(
+        request,
+        app_obj.id,
+        submitted_count=len(submitted_answers),
+    )
     correct = 0
     for item in submitted_answers:
         if not isinstance(item, dict):
@@ -123,6 +165,7 @@ def api_application_submit(request, application_id):
     app_obj.status = 'mcq_completed'
     app_obj.mcq_date = timezone.now()
     app_obj.save(update_fields=['mcq_score', 'status', 'mcq_date'])
+    _clear_mcq_exam_state(request, app_obj.id)
 
     from register.api import _application_payload
 

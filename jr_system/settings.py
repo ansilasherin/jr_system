@@ -10,8 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
+from urllib.parse import urlparse, unquote
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -104,23 +106,50 @@ WSGI_APPLICATION = 'jr_system.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
+def _env(*names, default=''):
+    for name in names:
+        value = os.getenv(name)
+        if value not in (None, ''):
+            return value
+    return default
+
+
+def _postgres_database_from_url(database_url):
+    parsed = urlparse(database_url)
+    return {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': unquote(parsed.path.lstrip('/')),
+        'USER': unquote(parsed.username or ''),
+        'PASSWORD': unquote(parsed.password or ''),
+        'HOST': parsed.hostname or 'localhost',
+        'PORT': str(parsed.port or 5432),
+    }
+
+
 DATABASE_URL = os.getenv('DATABASE_URL')
+DB_ENGINE = os.getenv('DB_ENGINE', 'postgresql').lower()
+
 if DATABASE_URL:
     DATABASES = {
+        'default': _postgres_database_from_url(DATABASE_URL),
+    }
+elif DB_ENGINE == 'sqlite':
+    DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('POSTGRES_DB', 'jr_system'),
-            'USER': os.getenv('POSTGRES_USER', 'postgres'),
-            'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
-            'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
-            'PORT': int(os.getenv('POSTGRES_PORT', 5432)),
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': _env('DB_NAME', 'POSTGRES_DB', default='jr_system'),
+            'USER': _env('DB_USER', 'POSTGRES_USER', default='postgres'),
+            'PASSWORD': _env('DB_PASSWORD', 'POSTGRES_PASSWORD'),
+            'HOST': _env('DB_HOST', 'POSTGRES_HOST', default='localhost'),
+            'PORT': _env('DB_PORT', 'POSTGRES_PORT', default='5432'),
         }
     }
 

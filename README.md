@@ -122,6 +122,7 @@ Create a `.env` file in the project root:
 SECRET_KEY=your-django-secret-key
 
 # Database
+DB_ENGINE=postgresql
 DB_NAME=jr_system
 DB_USER=postgres
 DB_PASSWORD=your_db_password
@@ -209,6 +210,8 @@ For higher throughput, upgrade to a paid Groq plan at [https://console.groq.com/
 ---
 
 ## Database Setup
+
+For an existing MySQL installation, first follow [MYSQL_TO_POSTGRESQL_MIGRATION.md](MYSQL_TO_POSTGRESQL_MIGRATION.md) to back up and export the current data before switching `.env` to PostgreSQL.
 
 ### 1. Create the PostgreSQL database
 

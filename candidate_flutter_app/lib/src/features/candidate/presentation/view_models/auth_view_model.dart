@@ -17,9 +17,20 @@ class AuthViewModel extends ChangeNotifier {
     checkingSession = true;
     notifyListeners();
     try {
-      final role = await _repository.savedSessionRole();
-      if (role == 'hr') return 'hr';
-      if (role == 'user') return 'user';
+      final role = await _repository.quickSessionRole(); 
+      if (role == null) {
+        user = null;
+        return null;
+      }
+      // Refresh profile in the background; do not block app launch.
+      _repository.restoreSession().then((restored) {
+        user = restored;
+        notifyListeners();
+      });
+      return role;
+    } catch (e) {
+      error = _cleanError(e);
+      user = null;
       return null;
     } finally {
       checkingSession = false;
@@ -96,10 +107,16 @@ class AuthViewModel extends ChangeNotifier {
     await _repository.logout();
   }
 
+  Future<void> ensureUserLoaded() async {
+    if (user != null) return;
+    user = await _repository.restoreSession();
+    notifyListeners();
+  }
+
   String _cleanError(Object error) {
     final message = error.toString().replaceFirst('Exception: ', '');
-    if (message.startsWith('DioException')) {
-      return 'Server request failed. Please try again.';
+    if (message.startsWith('DioException') || message.startsWith('ApiException')) {
+      return message.replaceFirst('ApiException: ', '');
     }
     return message;
   }
