@@ -18,12 +18,13 @@ import '../widgets/recent_applications_panel.dart';
 import '../widgets/skill_panel.dart';
 import 'applications_page.dart';
 import 'job_detail_page.dart';
-import 'login_page.dart';
 
 class CandidateDashboardPage extends StatefulWidget {
-  const CandidateDashboardPage({super.key});
+  const CandidateDashboardPage({super.key, this.showApplicationsAction = true});
 
   static const route = '/candidate-dashboard';
+
+  final bool showApplicationsAction;
 
   @override
   State<CandidateDashboardPage> createState() => _CandidateDashboardPageState();
@@ -84,21 +85,13 @@ class _CandidateDashboardPageState extends State<CandidateDashboardPage> {
                     : () => _showFilters(vm),
             icon: const Icon(Icons.tune_rounded),
           ),
-          IconButton(
-            tooltip: 'Applications',
-            onPressed:
-                () => Navigator.of(context).pushNamed(ApplicationsPage.route),
-            icon: const Icon(Icons.assignment_outlined),
-          ),
-          IconButton(
-            tooltip: 'Logout',
-            onPressed: () async {
-              await context.read<DashboardViewModel>().logout();
-              if (!context.mounted) return;
-              Navigator.of(context).pushReplacementNamed(LoginPage.route);
-            },
-            icon: const Icon(Icons.logout_rounded),
-          ),
+          if (widget.showApplicationsAction)
+            IconButton(
+              tooltip: 'Applications',
+              onPressed:
+                  () => Navigator.of(context).pushNamed(ApplicationsPage.route),
+              icon: const Icon(Icons.assignment_outlined),
+            ),
         ],
       ),
       body: RefreshIndicator(

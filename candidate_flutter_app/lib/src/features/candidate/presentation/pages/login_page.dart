@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../view_models/auth_view_model.dart';
-import 'candidate_dashboard_page.dart';
-import 'hr_dashboard_page.dart';
+import 'candidate_shell_page.dart';
+import 'hr_shell_page.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -188,7 +188,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted || !ok) return;
     final user = context.read<AuthViewModel>().user;
     Navigator.of(context).pushReplacementNamed(
-      user?.role == 'hr' ? HrDashboardPage.route : CandidateDashboardPage.route,
+      user?.role == 'hr' ? HrShellPage.route : CandidateShellPage.route,
     );
   }
 }

@@ -5,39 +5,44 @@ import 'src/app.dart';
 import 'src/core/network/api_client.dart';
 import 'src/core/network/api_config.dart';
 import 'src/features/candidate/data/candidate_repository.dart';
+import 'src/features/candidate/data/profile_repository.dart';
+import 'src/features/candidate/data/profile_service.dart';
 import 'src/features/candidate/presentation/view_models/auth_view_model.dart';
 import 'src/features/candidate/presentation/view_models/applications_view_model.dart';
 import 'src/features/candidate/presentation/view_models/dashboard_view_model.dart';
 import 'src/features/candidate/presentation/view_models/hr_dashboard_view_model.dart';
+import 'src/features/candidate/presentation/view_models/profile_view_model.dart';
 
 Future<void> main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
   await ApiConfig.initialize();
   final apiClient = ApiClient();
   await apiClient.loadSavedServerUrl();
   final repository = CandidateRepository(apiClient);
+  final profileRepository = ProfileRepository(
+    repository,
+    const ProfileService(),
+  );
 
   runApp(
     MultiProvider(
       providers: [
         Provider.value(value: repository),
+        Provider.value(value: profileRepository),
         ChangeNotifierProvider(create: (_) => AuthViewModel(repository)),
         ChangeNotifierProvider(create: (_) => DashboardViewModel(repository)),
         ChangeNotifierProvider(
           create: (_) => ApplicationsViewModel(repository),
         ),
         ChangeNotifierProvider(create: (_) => HrDashboardViewModel(repository)),
+        ChangeNotifierProvider(
+          create: (_) => ProfileViewModel(profileRepository),
+        ),
       ],
-      child:  CandidatePortalApp(),
+      child: CandidatePortalApp(),
     ),
   );
 }
-
-
-
-
-
 
 // Web/Desktop: http://127.0.0.1:8000
 // Physical phone: http://192.168.1.16:8000
@@ -62,8 +67,7 @@ Future<void> main() async {
 // flutter analyze passed
 // flutter test passed
 
-
 // sneha123@gmail.com
 // anu@gmail.com
 
-// python manage.py runserver 0.0.0.0:8000
+//latest - python manage.py runserver 0.0.0.0:8000

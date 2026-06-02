@@ -104,9 +104,21 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> logout() async {
-    user = null;
-    await _repository.logout();
+  Future<bool> logout() async {
+    loading = true;
+    error = null;
+    notifyListeners();
+    try {
+      await _repository.logout();
+      user = null;
+      return true;
+    } catch (e) {
+      error = _cleanError(e);
+      return false;
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> ensureUserLoaded() async {

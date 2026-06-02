@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'features/candidate/presentation/pages/applications_page.dart';
 import 'features/candidate/presentation/pages/auth_gate_page.dart';
 import 'features/candidate/presentation/pages/candidate_dashboard_page.dart';
+import 'features/candidate/presentation/pages/candidate_profile_page.dart';
+import 'features/candidate/presentation/pages/candidate_shell_page.dart';
 import 'features/candidate/presentation/pages/hr_dashboard_page.dart';
+import 'features/candidate/presentation/pages/hr_profile_page.dart';
+import 'features/candidate/presentation/pages/hr_shell_page.dart';
 import 'features/candidate/presentation/pages/login_page.dart';
 import 'features/candidate/presentation/pages/register_page.dart';
 
@@ -23,8 +27,12 @@ class CandidatePortalApp extends StatelessWidget {
         AuthGatePage.route: (_) => const AuthGatePage(),
         LoginPage.route: (_) => const LoginPage(),
         RegisterPage.route: (_) => const RegisterPage(),
+        CandidateShellPage.route: (_) => const CandidateShellPage(),
         CandidateDashboardPage.route: (_) => const CandidateDashboardPage(),
+        CandidateProfilePage.route: (_) => const CandidateProfilePage(),
+        HrShellPage.route: (_) => const HrShellPage(),
         HrDashboardPage.route: (_) => const HrDashboardPage(),
+        HrProfilePage.route: (_) => const HrProfilePage(),
         ApplicationsPage.route: (_) => const ApplicationsPage(),
       },
     );

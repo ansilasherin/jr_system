@@ -14,6 +14,15 @@ class HrDashboardViewModel extends ChangeNotifier {
   String? successMessage;
   String statusFilter = '';
 
+  void clearCachedApplications() {
+    applications = [];
+    loading = false;
+    error = null;
+    successMessage = null;
+    statusFilter = '';
+    notifyListeners();
+  }
+
   Future<void> loadApplications({bool showLoading = true}) async {
     if (showLoading) {
       loading = true;
@@ -80,7 +89,8 @@ class HrDashboardViewModel extends ChangeNotifier {
 
   String _cleanError(Object error) {
     final message = error.toString().replaceFirst('Exception: ', '');
-    if (message.startsWith('DioException') || message.startsWith('ApiException')) {
+    if (message.startsWith('DioException') ||
+        message.startsWith('ApiException')) {
       return message.replaceFirst('ApiException: ', '');
     }
     return message;

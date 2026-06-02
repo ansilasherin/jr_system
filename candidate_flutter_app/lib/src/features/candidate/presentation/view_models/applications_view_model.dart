@@ -19,6 +19,19 @@ class ApplicationsViewModel extends ChangeNotifier {
   String? successMessage;
   ApplicationModel? selectedApplication;
 
+  void clearCachedApplications() {
+    applications = [];
+    questions = [];
+    answers.clear();
+    loading = false;
+    examLoading = false;
+    submitting = false;
+    error = null;
+    successMessage = null;
+    selectedApplication = null;
+    notifyListeners();
+  }
+
   Future<void> loadApplications() async {
     loading = true;
     error = null;
@@ -89,7 +102,8 @@ class ApplicationsViewModel extends ChangeNotifier {
 
   String _cleanError(Object error) {
     final message = error.toString().replaceFirst('Exception: ', '');
-    if (message.startsWith('DioException') || message.startsWith('ApiException')) {
+    if (message.startsWith('DioException') ||
+        message.startsWith('ApiException')) {
       return message.replaceFirst('ApiException: ', '');
     }
     return message;

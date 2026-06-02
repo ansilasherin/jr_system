@@ -35,7 +35,8 @@ class DashboardViewModel extends ChangeNotifier {
 
   String? get departmentFilter => normalizeDepartment(profile?.course);
 
-  bool get hasDepartment => departmentFilter != null && departmentFilter!.isNotEmpty;
+  bool get hasDepartment =>
+      departmentFilter != null && departmentFilter!.isNotEmpty;
 
   bool get canRecommendJobs => hasDepartment || skills.isNotEmpty;
 
@@ -225,8 +226,7 @@ class DashboardViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> logout() async {
-    await _repository.logout();
+  void clearCachedDashboard() {
     profile = null;
     skills = [];
     jobs = [];
@@ -246,7 +246,8 @@ class DashboardViewModel extends ChangeNotifier {
 
   String _cleanError(Object error) {
     final message = error.toString().replaceFirst('Exception: ', '');
-    if (message.startsWith('DioException') || message.startsWith('ApiException')) {
+    if (message.startsWith('DioException') ||
+        message.startsWith('ApiException')) {
       return message.replaceFirst('ApiException: ', '');
     }
     return message;

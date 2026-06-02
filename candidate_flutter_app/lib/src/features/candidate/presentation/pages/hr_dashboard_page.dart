@@ -7,16 +7,16 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/api_config.dart';
 import '../../domain/models/application_model.dart';
-import '../view_models/auth_view_model.dart';
 import '../view_models/hr_dashboard_view_model.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/panel_card.dart';
-import 'login_page.dart';
 
 class HrDashboardPage extends StatefulWidget {
-  const HrDashboardPage({super.key});
+  const HrDashboardPage({super.key, this.showAppBar = true});
 
   static const route = '/hr-dashboard';
+
+  final bool showAppBar;
 
   @override
   State<HrDashboardPage> createState() => _HrDashboardPageState();
@@ -59,18 +59,7 @@ class _HrDashboardPageState extends State<HrDashboardPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('HR Applications'),
-        actions: [
-          IconButton(
-            tooltip: 'Logout',
-            onPressed: () async {
-              await context.read<AuthViewModel>().logout();
-              if (!context.mounted) return;
-              Navigator.of(context).pushReplacementNamed(LoginPage.route);
-            },
-            icon: const Icon(Icons.logout_rounded),
-          ),
-        ],
+        title: Text(widget.showAppBar ? 'HR Applications' : 'Applications'),
       ),
       body: RefreshIndicator(
         onRefresh: vm.loadApplications,

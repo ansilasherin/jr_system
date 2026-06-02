@@ -9,9 +9,11 @@ import '../widgets/panel_card.dart';
 import 'mcq_exam_page.dart';
 
 class ApplicationsPage extends StatefulWidget {
-  const ApplicationsPage({super.key});
+  const ApplicationsPage({super.key, this.showAppBar = true});
 
   static const route = '/applications';
+
+  final bool showAppBar;
 
   @override
   State<ApplicationsPage> createState() => _ApplicationsPageState();
@@ -31,7 +33,10 @@ class _ApplicationsPageState extends State<ApplicationsPage> {
     final vm = context.watch<ApplicationsViewModel>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Applications')),
+      appBar:
+          widget.showAppBar
+              ? AppBar(title: const Text('My Applications'))
+              : null,
       body: RefreshIndicator(
         onRefresh: vm.loadApplications,
         child:

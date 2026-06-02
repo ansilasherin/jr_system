@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../view_models/auth_view_model.dart';
-import 'candidate_dashboard_page.dart';
-import 'hr_dashboard_page.dart';
+import 'candidate_shell_page.dart';
+import 'hr_shell_page.dart';
 import 'login_page.dart';
 
 class AuthGatePage extends StatefulWidget {
@@ -50,8 +50,8 @@ class _AuthGatePageState extends State<AuthGatePage> {
     if (!mounted || _navigated) return;
 
     final route = switch (role) {
-      'hr' => HrDashboardPage.route,
-      'user' => CandidateDashboardPage.route,
+      'hr' => HrShellPage.route,
+      'user' => CandidateShellPage.route,
       _ => LoginPage.route,
     };
     _goTo(route);
