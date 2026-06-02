@@ -5,7 +5,7 @@ daphne
 django-allauth
 django-cors-headers
 python-dotenv
-psycopg2-binary
+psycopg[binary]
 pillow
 requests
 groq

@@ -61,7 +61,9 @@ class ApiClient {
 
   Future<String?> getActiveRootUrl() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_activeRootKey) ?? _overrideRootUrl ?? ApiConfig.rootUrl;
+    return prefs.getString(_activeRootKey) ??
+        _overrideRootUrl ??
+        ApiConfig.rootUrl;
   }
 
   Future<String?> getConfiguredServerUrl() async {
@@ -117,7 +119,13 @@ class ApiClient {
     bool mcq = false,
     bool singleHost = false,
   }) async {
-    return _request('GET', path, query: query, mcq: mcq, singleHost: singleHost);
+    return _request(
+      'GET',
+      path,
+      query: query,
+      mcq: mcq,
+      singleHost: singleHost,
+    );
   }
 
   Future<Response<dynamic>> post(
@@ -176,7 +184,10 @@ class ApiClient {
       }
     }
 
-    throw _toApiException(lastNetworkError);
+    if (lastNetworkError != null) {
+      throw lastNetworkError;
+    }
+    throw ApiException(ApiConfig.connectionHelpMessage());
   }
 
   Future<List<String>> _orderedRoots({bool singleHost = false}) async {

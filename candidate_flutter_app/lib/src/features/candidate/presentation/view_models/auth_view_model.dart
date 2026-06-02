@@ -1,5 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/network/api_config.dart';
 import '../../data/candidate_repository.dart';
 import '../../domain/models/candidate_user.dart';
 import '../../domain/models/picked_cv.dart';
@@ -17,7 +19,7 @@ class AuthViewModel extends ChangeNotifier {
     checkingSession = true;
     notifyListeners();
     try {
-      final role = await _repository.quickSessionRole(); 
+      final role = await _repository.quickSessionRole();
       if (role == null) {
         user = null;
         return null;
@@ -114,8 +116,12 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   String _cleanError(Object error) {
+    if (error is DioException) {
+      return ApiConfig.connectionHelpMessage();
+    }
     final message = error.toString().replaceFirst('Exception: ', '');
-    if (message.startsWith('DioException') || message.startsWith('ApiException')) {
+    if (message.startsWith('DioException') ||
+        message.startsWith('ApiException')) {
       return message.replaceFirst('ApiException: ', '');
     }
     return message;

@@ -123,7 +123,7 @@ class _StatusFilters extends StatelessWidget {
       'mcq_completed',
       'hired',
       'rejected',
-      'interview_completed',
+      // 'interview_completed',
     ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -229,8 +229,6 @@ class _HrApplicationCard extends StatelessWidget {
                 ),
               if (application.status == 'mcq_completed')
                 const Chip(label: Text('Ready for HR evaluation')),
-              if (application.interviewResult?.isNotEmpty == true)
-                Chip(label: Text('Interview ${application.interviewResult}')),
             ],
           ),
           const SizedBox(height: 14),

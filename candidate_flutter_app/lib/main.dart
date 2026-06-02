@@ -11,6 +11,7 @@ import 'src/features/candidate/presentation/view_models/dashboard_view_model.dar
 import 'src/features/candidate/presentation/view_models/hr_dashboard_view_model.dart';
 
 Future<void> main() async {
+
   WidgetsFlutterBinding.ensureInitialized();
   await ApiConfig.initialize();
   final apiClient = ApiClient();
@@ -37,11 +38,6 @@ Future<void> main() async {
 
 
 
-
-
-// ഇപ്പോൾ app എല്ലായിടത്തും run ചെയ്യാൻ API fallback ചേർത്തു.
-
-// ഇനി app auto-try ചെയ്യും:
 
 // Web/Desktop: http://127.0.0.1:8000
 // Physical phone: http://192.168.1.16:8000
@@ -70,3 +66,4 @@ Future<void> main() async {
 // sneha123@gmail.com
 // anu@gmail.com
 
+// python manage.py runserver 0.0.0.0:8000

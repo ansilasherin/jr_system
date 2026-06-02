@@ -17,10 +17,14 @@ class ApiConfig {
   static String? _assetHost;
 
   static String get rootUrl =>
-      _resolvedRoots.isNotEmpty ? _resolvedRoots.first : 'http://127.0.0.1:8000';
+      _resolvedRoots.isNotEmpty
+          ? _resolvedRoots.first
+          : 'http://127.0.0.1:8000';
 
   static List<String> get rootUrls =>
-      _resolvedRoots.isNotEmpty ? List.unmodifiable(_resolvedRoots) : _fallbackRoots();
+      _resolvedRoots.isNotEmpty
+          ? List.unmodifiable(_resolvedRoots)
+          : _fallbackRoots();
 
   static Future<void> initialize() async {
     _assetHost = await _loadAssetHost();
@@ -51,23 +55,30 @@ class ApiConfig {
   static bool get isAndroidEmulator => _androidEmulator == true;
 
   static List<String> _buildRootUrls() {
-    final urls = <String>[
-      if (_definedRootUrl.isNotEmpty) _definedRootUrl,
+    final urls = <String>[if (_definedRootUrl.isNotEmpty) _definedRootUrl];
+    final lanUrls = <String>[
       if (_definedLanUrl.isNotEmpty) _definedLanUrl,
       if (_assetHost != null && _assetHost!.isNotEmpty) _assetHost!,
     ];
 
     if (kIsWeb) {
-      urls.addAll(['http://127.0.0.1:$defaultPort', 'http://localhost:$defaultPort']);
+      urls.addAll([
+        'http://127.0.0.1:$defaultPort',
+        'http://localhost:$defaultPort',
+      ]);
+      urls.addAll(lanUrls);
     } else if (Platform.isAndroid) {
       if (isAndroidEmulator) {
         urls.add('http://10.0.2.2:$defaultPort');
       }
+      urls.addAll(lanUrls);
       // Physical phones must reach the PC over LAN — not localhost or 10.0.2.2.
     } else if (Platform.isIOS) {
       urls.add('http://127.0.0.1:$defaultPort');
+      urls.addAll(lanUrls);
     } else {
       urls.add('http://127.0.0.1:$defaultPort');
+      urls.addAll(lanUrls);
     }
 
     return urls.map(normalizeHost).whereType<String>().toSet().toList();
