@@ -1,6 +1,7 @@
 import 'candidate_repository.dart';
 import 'profile_service.dart';
 import 'sample_candidate_data.dart';
+import '../domain/models/job_model.dart';
 import '../domain/models/profile_summary.dart';
 
 class ProfileRepository {
@@ -13,12 +14,26 @@ class ProfileRepository {
     try {
       final user = await _candidateRepository.fetchProfile();
       final applications = await _candidateRepository.applications();
-      return CandidateProfileSummary(user: user, applications: applications);
+      final savedJobs = await _savedJobs();
+      return CandidateProfileSummary(
+        user: user,
+        applications: applications,
+        savedJobs: savedJobs,
+      );
     } catch (_) {
       return CandidateProfileSummary(
         user: SampleCandidateData.profile,
         applications: SampleCandidateData.recentApplications,
+        savedJobs: SampleCandidateData.jobs.where((job) => job.saved).toList(),
       );
+    }
+  }
+
+  Future<List<JobModel>> _savedJobs() async {
+    try {
+      return (await _candidateRepository.dashboard()).savedJobs;
+    } catch (_) {
+      return const [];
     }
   }
 

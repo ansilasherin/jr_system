@@ -1,11 +1,11 @@
 {
-    "name": "candidate_flutter_app",
-    "short_name": "candidate_flutter_app",
+    "name": "SmartHire",
+    "short_name": "SmartHire",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#4f46e5",
+    "theme_color": "#4f46e5",
+    "description": "SmartHire candidate and HR hiring portal.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

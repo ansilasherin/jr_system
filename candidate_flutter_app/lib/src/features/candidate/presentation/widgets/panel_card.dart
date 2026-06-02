@@ -12,14 +12,26 @@ class PanelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isLight = theme.brightness == Brightness.light;
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
+        color: isLight ? Colors.white : theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: .35),
+          color: isLight ? const Color(0xffedf0f7) : const Color(0xff282b3a),
         ),
+        boxShadow:
+            isLight
+                ? [
+                  BoxShadow(
+                    color: const Color(0xff101828).withValues(alpha: .045),
+                    blurRadius: 24,
+                    offset: const Offset(0, 12),
+                  ),
+                ]
+                : null,
       ),
       child: child,
     );

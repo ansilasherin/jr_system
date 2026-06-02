@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
 
 import '../view_models/auth_view_model.dart';
+import '../widgets/brand_mark.dart';
 import 'candidate_shell_page.dart';
 import 'hr_shell_page.dart';
 import 'login_page.dart';
@@ -25,7 +27,7 @@ class _AuthGatePageState extends State<AuthGatePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _resolveSession());
-    _safetyTimer = Timer(const Duration(seconds: 6), _forceLoginIfStuck);
+    _safetyTimer = Timer(const Duration(seconds: 8), _forceLoginIfStuck);
   }
 
   @override
@@ -41,12 +43,14 @@ class _AuthGatePageState extends State<AuthGatePage> {
 
   Future<void> _resolveSession() async {
     final auth = context.read<AuthViewModel>();
+    final minSplash = Future<void>.delayed(const Duration(seconds: 4));
     String? role;
     try {
       role = await auth.savedSessionRoute().timeout(const Duration(seconds: 5));
     } catch (_) {
       role = null;
     }
+    await minSplash;
     if (!mounted || _navigated) return;
 
     final route = switch (role) {
@@ -66,15 +70,35 @@ class _AuthGatePageState extends State<AuthGatePage> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Loading...'),
-          ],
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const BrandMark(size: 76),
+              const SizedBox(height: 18),
+              Text(
+                'SmartHire',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'AI-powered jobs, applications, and hiring',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 28),
+              SpinKitWanderingCubes(
+                color: theme.colorScheme.primary,
+                size: 42,
+              ),
+            ],
+          ),
         ),
       ),
     );

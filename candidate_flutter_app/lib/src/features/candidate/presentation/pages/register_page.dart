@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../domain/department_options.dart';
 import '../../domain/models/picked_cv.dart';
 import '../view_models/auth_view_model.dart';
+import '../widgets/brand_mark.dart';
 import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -38,44 +39,44 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AuthViewModel>();
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Create Candidate Account')),
-      body: Center(
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: Theme.of(context).dividerColor.withValues(alpha: .35),
-                ),
-              ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    const Center(child: BrandMark(size: 62)),
+                    const SizedBox(height: 14),
                     Text(
                       'Candidate Registration',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w900),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Add your details and upload a CV to start matching.',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 24),
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(
-                        labelText: 'Full name',
+                        hintText: 'Full name',
                         prefixIcon: Icon(Icons.person_outline_rounded),
                       ),
                       validator:
@@ -89,7 +90,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
-                        labelText: 'Email',
+                        hintText: 'Email',
                         prefixIcon: Icon(Icons.mail_outline_rounded),
                       ),
                       validator:
@@ -103,7 +104,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
                       decoration: const InputDecoration(
-                        labelText: 'Phone',
+                        hintText: 'Phone',
                         prefixIcon: Icon(Icons.call_outlined),
                       ),
                     ),
@@ -111,7 +112,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     DropdownButtonFormField<String>(
                       value: _selectedDepartment,
                       decoration: const InputDecoration(
-                        labelText: 'Department',
+                        hintText: 'Department',
                         prefixIcon: Icon(Icons.school_outlined),
                       ),
                       items:
@@ -137,7 +138,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: _passwordController,
                       obscureText: true,
                       decoration: const InputDecoration(
-                        labelText: 'Password',
+                        hintText: 'Password',
                         prefixIcon: Icon(Icons.lock_outline_rounded),
                       ),
                       validator:
@@ -150,15 +151,14 @@ class _RegisterPageState extends State<RegisterPage> {
                     OutlinedButton.icon(
                       onPressed: vm.loading ? null : _pickCv,
                       icon: const Icon(Icons.upload_file_rounded),
-                      label: Text(_cv?.name ?? 'Attach CV '),
+                      label: Text(_cv?.name ?? 'Attach CV'),
                     ),
                     if (vm.error != null) ...[
                       const SizedBox(height: 14),
                       Text(
                         vm.error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: theme.colorScheme.error),
                       ),
                     ],
                     const SizedBox(height: 22),

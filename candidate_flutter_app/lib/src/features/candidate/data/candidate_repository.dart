@@ -27,9 +27,7 @@ class CandidateRepository {
     );
     final data = _expectSuccess(response);
     final user = await _normalizeUser(
-      CandidateUser.fromJson(
-        Map<String, dynamic>.from(data['user'] as Map),
-      ),
+      CandidateUser.fromJson(Map<String, dynamic>.from(data['user'] as Map)),
     );
     if (expectedRole != null && user.role != expectedRole) {
       throw ApiException(
@@ -136,10 +134,7 @@ class CandidateRepository {
   }
 
   Future<CandidateUser> fetchProfile() async {
-    final response = await _client.get(
-      '/candidate/profile/',
-      singleHost: true,
-    );
+    final response = await _client.get('/candidate/profile/', singleHost: true);
     final data = _expectSuccess(response);
     final user = CandidateUser.fromJson(
       Map<String, dynamic>.from(data['user'] as Map),
@@ -187,7 +182,7 @@ class CandidateRepository {
       if (!_isNetworkFailure(e)) rethrow;
       onProgress(1);
       throw ApiException(
-        'Cannot analyze CV without connecting to the JR System backend.',
+        'Cannot analyze CV without connecting to the SmartHire backend.',
       );
     }
   }
@@ -217,15 +212,14 @@ class CandidateRepository {
         },
       );
       return JobsPage.fromJson(_expectSuccess(response));
-    }
-    on DioException catch (e) {
+    } on DioException catch (e) {
       if (!_isNetworkFailure(e)) rethrow;
       throw ApiException(
-        'Cannot load job recommendations without connecting to the JR System backend.',
+        'Cannot load job recommendations without connecting to the SmartHire backend.',
       );
     }
   }
-  
+
   Future<ApplicationModel> applyJob(int jobId) async {
     try {
       final response = await _client.post(
@@ -389,7 +383,8 @@ class CandidateRepository {
       role: user.role,
       phone: user.phone,
       course: user.course,
-      cvUrl: user.cvUrl == null ? null : ApiConfig.absoluteUrl(user.cvUrl, root),
+      cvUrl:
+          user.cvUrl == null ? null : ApiConfig.absoluteUrl(user.cvUrl, root),
       cvName: user.cvName,
       profileUrl:
           user.profileUrl == null

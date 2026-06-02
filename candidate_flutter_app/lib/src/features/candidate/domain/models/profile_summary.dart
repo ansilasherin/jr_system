@@ -1,14 +1,17 @@
 import 'application_model.dart';
 import 'candidate_user.dart';
+import 'job_model.dart';
 
 class CandidateProfileSummary {
   const CandidateProfileSummary({
     required this.user,
     required this.applications,
+    required this.savedJobs,
   });
 
   final CandidateUser user;
   final List<ApplicationModel> applications;
+  final List<JobModel> savedJobs;
 }
 
 class HrPostedJobSummary {

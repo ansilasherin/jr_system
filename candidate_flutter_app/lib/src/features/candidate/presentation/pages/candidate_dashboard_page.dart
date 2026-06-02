@@ -14,7 +14,6 @@ import '../widgets/dashboard_skeleton.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/job_card.dart';
 import '../widgets/panel_card.dart';
-import '../widgets/recent_applications_panel.dart';
 import '../widgets/skill_panel.dart';
 import 'applications_page.dart';
 import 'job_detail_page.dart';
@@ -114,26 +113,26 @@ class _CandidateDashboardPageState extends State<CandidateDashboardPage> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(flex: 5, child: _SideColumn(vm: vm)),
-                              const SizedBox(width: 18),
                               Expanded(
-                                flex: 7,
-                                child: _JobsColumn(
+                                flex: 5,
+                                child: _SideColumn(
                                   vm: vm,
                                   searchController: _searchController,
                                   onSearch: _onSearch,
                                 ),
                               ),
+                              const SizedBox(width: 18),
+                              Expanded(flex: 7, child: _JobsColumn(vm: vm)),
                             ],
                           )
                         else ...[
-                          _SideColumn(vm: vm),
-                          const SizedBox(height: 18),
-                          _JobsColumn(
+                          _SideColumn(
                             vm: vm,
                             searchController: _searchController,
                             onSearch: _onSearch,
                           ),
+                          const SizedBox(height: 18),
+                          _JobsColumn(vm: vm),
                         ],
                       ],
                     );
@@ -150,7 +149,7 @@ class _CandidateDashboardPageState extends State<CandidateDashboardPage> {
     });
   }
 
-  Future<void> _showFilters(DashboardViewModel vm) async {
+  Future<void> _showFilters(DashboardViewModel vm) async { 
     final locationController = TextEditingController(text: vm.locationFilter);
     final selectedSkills = <String>{...vm.skillFilters};
     await showModalBottomSheet<void>(
@@ -227,9 +226,15 @@ class _CandidateDashboardPageState extends State<CandidateDashboardPage> {
 }
 
 class _SideColumn extends StatelessWidget {
-  const _SideColumn({required this.vm});
+  const _SideColumn({
+    required this.vm,
+    required this.searchController,
+    required this.onSearch,
+  });
 
   final DashboardViewModel vm;
+  final TextEditingController searchController;
+  final ValueChanged<String> onSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +244,11 @@ class _SideColumn extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _ProfileSummaryPanel(vm: vm, cvFileName: fileName),
+        _DashboardSearchPanel(
+          enabled: vm.canRecommendJobs,
+          controller: searchController,
+          onSearch: onSearch,
+        ),
         const SizedBox(height: 16),
         CvUploadCard(
           fileName: fileName,
@@ -258,9 +267,6 @@ class _SideColumn extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
-        _SavedJobsPanel(jobs: vm.savedJobs),
-        const SizedBox(height: 16),
-        RecentApplicationsPanel(applications: vm.recentApplications),
       ],
     );
   }
@@ -288,146 +294,66 @@ class _SideColumn extends StatelessWidget {
   }
 }
 
-class _ProfileSummaryPanel extends StatelessWidget {
-  const _ProfileSummaryPanel({required this.vm, required this.cvFileName});
-
-  final DashboardViewModel vm;
-  final String? cvFileName;
-
-  @override
-  Widget build(BuildContext context) {
-    final profile = vm.profile;
-    return PanelCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Profile',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 12),
-          _ProfileRow(
-            icon: Icons.person_outline_rounded,
-            label: 'Candidate',
-            value: profile?.fullName ?? 'Candidate',
-          ),
-          _ProfileRow(
-            icon: Icons.mail_outline_rounded,
-            label: 'Email',
-            value: profile?.email ?? '-',
-          ),
-          if (profile?.phone != null && profile!.phone!.isNotEmpty)
-            _ProfileRow(
-              icon: Icons.call_outlined,
-              label: 'Phone',
-              value: profile.phone!,
-            ),
-          if (profile?.course != null && profile!.course!.isNotEmpty)
-            _ProfileRow(
-              icon: Icons.school_outlined,
-              label: 'Department',
-              value: profile.course!,
-            ),
-          _ProfileRow(
-            icon: Icons.description_outlined,
-            label: 'Uploaded CV',
-            value: cvFileName ?? 'No CV uploaded',
-          ),
-          _ProfileRow(
-            icon: Icons.assignment_outlined,
-            label: 'Applied jobs',
-            value: vm.recentApplications.length.toString(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileRow extends StatelessWidget {
-  const _ProfileRow({
-    required this.icon,
-    required this.label,
-    required this.value,
+class _DashboardSearchPanel extends StatelessWidget {
+  const _DashboardSearchPanel({
+    required this.enabled,
+    required this.controller,
+    required this.onSearch,
   });
 
-  final IconData icon;
-  final String label;
-  final String value;
+  final bool enabled;
+  final TextEditingController controller;
+  final ValueChanged<String> onSearch;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SavedJobsPanel extends StatelessWidget {
-  const _SavedJobsPanel({required this.jobs});
-
-  final List<JobModel> jobs;
-
-  @override
-  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return PanelCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Saved Jobs',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+            'Search Jobs',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          const SizedBox(height: 10),
-          if (jobs.isEmpty)
-            const EmptyState(
-              title: 'No saved jobs',
-              message: 'Saved jobs will stay handy here.',
-            )
-          else
-            ...jobs
-                .take(5)
-                .map(
-                  (job) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      job.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(job.company),
-                    trailing: Text('${job.matchScore}%'),
-                  ),
+          const SizedBox(height: 12),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, value, _) {
+              return TextField(
+                controller: controller,
+                enabled: enabled,
+                onChanged: onSearch,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: 'Search jobs, skills, company, location',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon:
+                      value.text.isEmpty
+                          ? null
+                          : IconButton(
+                            tooltip: 'Clear search',
+                            onPressed: () {
+                              controller.clear();
+                              onSearch('');
+                            },
+                            icon: const Icon(Icons.close_rounded),
+                          ),
                 ),
+              );
+            },
+          ),
+          if (!enabled) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Upload your CV or set your department to enable job search.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -435,15 +361,9 @@ class _SavedJobsPanel extends StatelessWidget {
 }
 
 class _JobsColumn extends StatelessWidget {
-  const _JobsColumn({
-    required this.vm,
-    required this.searchController,
-    required this.onSearch,
-  });
+  const _JobsColumn({required this.vm});
 
   final DashboardViewModel vm;
-  final TextEditingController searchController;
-  final ValueChanged<String> onSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -457,15 +377,6 @@ class _JobsColumn extends StatelessWidget {
                 'Upload your CV or set your department to see AI-ranked job recommendations.',
           )
         else ...[
-          TextField(
-            controller: searchController,
-            onChanged: onSearch,
-            decoration: const InputDecoration(
-              hintText: 'Search jobs, skills, company, location',
-              prefixIcon: Icon(Icons.search_rounded),
-            ),
-          ),
-          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
@@ -548,30 +459,49 @@ class _HeroHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
+        color: theme.colorScheme.primary,
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xff2563eb), Color(0xff14b8a6)],
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: .18),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            'Welcome, $name',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome, $name',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: theme.colorScheme.onPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Browse jobs for your department. Upload your CV to rank matches with AI-extracted skills.',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onPrimary.withValues(alpha: .86),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Browse jobs for your department. Upload your CV to rank matches with AI-extracted skills.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withValues(alpha: .92),
-            ),
+          const SizedBox(width: 16),
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: theme.colorScheme.onPrimary.withValues(alpha: .14),
+            foregroundColor: theme.colorScheme.onPrimary,
+            child: const Icon(Icons.work_outline_rounded, size: 30),
           ),
         ],
       ),

@@ -129,11 +129,11 @@ class ApiConfig {
 
   static String connectionHelpMessage() {
     if (!kIsWeb && Platform.isAndroid && !isAndroidEmulator) {
-      return 'Cannot reach the JR System backend. On a real phone, set your PC IP in '
+      return 'Cannot reach the SmartHire backend. On a real phone, set your PC IP in '
           'assets/config/api_host.json (host field), run '
           'python manage.py runserver 0.0.0.0:8000, and ensure phone and PC use the same Wi‑Fi.';
     }
-    return 'Cannot reach the JR System backend. Start the server with '
+    return 'Cannot reach the SmartHire backend. Start the server with '
         'python manage.py runserver 0.0.0.0:8000 and try again.';
   }
 

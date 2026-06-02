@@ -10,6 +10,7 @@ import '../view_models/profile_view_model.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/logout_controls.dart';
 import '../widgets/panel_card.dart';
+import '../widgets/theme_mode_section.dart';
 import 'job_detail_page.dart';
 
 class CandidateProfilePage extends StatefulWidget {
@@ -65,9 +66,15 @@ class _CandidateProfilePageState extends State<CandidateProfilePage> {
                       const SizedBox(height: 14),
                       _ProfileDetails(user: profile.user),
                       const SizedBox(height: 14),
-                      _AppliedJobsSection(applications: profile.applications),
+                      _SavedJobsSection(jobs: profile.savedJobs),
+                      const SizedBox(height: 18),
+                      _RecentlyAppliedSection(
+                        applications: profile.applications,
+                      ),
                     ],
                     const SizedBox(height: 32),
+                    const ThemeModeSection(),
+                    const SizedBox(height: 14),
                     const ProfileLogoutSection(),
                     const SizedBox(height: 16),
                   ],
@@ -242,8 +249,122 @@ class _ProfileDetails extends StatelessWidget {
   }
 }
 
-class _AppliedJobsSection extends StatelessWidget {
-  const _AppliedJobsSection({required this.applications});
+class _SavedJobsSection extends StatelessWidget {
+  const _SavedJobsSection({required this.jobs});
+
+  final List<JobModel> jobs;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Saved Jobs',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (jobs.isEmpty)
+          const EmptyState(
+            title: 'No saved jobs',
+            message: 'Saved jobs will appear here.',
+          )
+        else
+          ...jobs.map(
+            (job) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _SavedJobCard(job: job),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _SavedJobCard extends StatelessWidget {
+  const _SavedJobCard({required this.job});
+
+  final JobModel job;
+
+  @override
+  Widget build(BuildContext context) {
+    return PanelCard(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _openJob(context),
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          job.title,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(job.company),
+                      ],
+                    ),
+                  ),
+                  Chip(
+                    label: Text('${job.matchScore}%'),
+                    avatar: const Icon(Icons.bookmark_outline_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _MiniChip(
+                    icon: Icons.location_on_outlined,
+                    label:
+                        job.location.isEmpty ? 'Not specified' : job.location,
+                  ),
+                  _MiniChip(
+                    icon: Icons.work_outline_rounded,
+                    label:
+                        job.department == null || job.department!.isEmpty
+                            ? 'Not specified'
+                            : job.department!,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openJob(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => JobDetailPage(
+              job: job,
+              onSave: () async {},
+              onApply: () async {},
+            ),
+      ),
+    );
+  }
+}
+
+class _RecentlyAppliedSection extends StatelessWidget {
+  const _RecentlyAppliedSection({required this.applications});
 
   final List<ApplicationModel> applications;
 
@@ -254,7 +375,7 @@ class _AppliedJobsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Applied Jobs',
+          'Recently Applied',
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w900,
           ),
@@ -262,7 +383,7 @@ class _AppliedJobsSection extends StatelessWidget {
         const SizedBox(height: 10),
         if (applications.isEmpty)
           const EmptyState(
-            title: 'No applied jobs',
+            title: 'No recent applications',
             message: 'Jobs you apply for will appear here.',
           )
         else

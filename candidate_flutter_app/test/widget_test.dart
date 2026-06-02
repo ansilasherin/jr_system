@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:candidate_flutter_app/src/app.dart';
 import 'package:candidate_flutter_app/src/core/network/api_client.dart';
 import 'package:candidate_flutter_app/src/core/network/api_config.dart';
+import 'package:candidate_flutter_app/src/core/theme/app_theme_view_model.dart';
 import 'package:candidate_flutter_app/src/features/candidate/data/candidate_repository.dart';
 import 'package:candidate_flutter_app/src/features/candidate/presentation/view_models/applications_view_model.dart';
 import 'package:candidate_flutter_app/src/features/candidate/presentation/view_models/auth_view_model.dart';
@@ -20,12 +21,14 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
     await ApiConfig.initialize();
+    final prefs = await SharedPreferences.getInstance();
     final repository = CandidateRepository(ApiClient());
 
     await tester.pumpWidget(
       MultiProvider(
         providers: [
           Provider.value(value: repository),
+          ChangeNotifierProvider(create: (_) => AppThemeViewModel(prefs)),
           ChangeNotifierProvider(create: (_) => AuthViewModel(repository)),
           ChangeNotifierProvider(create: (_) => DashboardViewModel(repository)),
           ChangeNotifierProvider(
@@ -40,7 +43,8 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
 
     expect(find.text('Candidate sign in'), findsOneWidget);
     expect(find.text('Candidate'), findsOneWidget);

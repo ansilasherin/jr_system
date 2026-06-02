@@ -7,6 +7,7 @@ import '../view_models/profile_view_model.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/logout_controls.dart';
 import '../widgets/panel_card.dart';
+import '../widgets/theme_mode_section.dart';
 
 class HrProfilePage extends StatefulWidget {
   const HrProfilePage({super.key});
@@ -64,6 +65,8 @@ class _HrProfilePageState extends State<HrProfilePage> {
                       _PostedJobsSection(jobs: profile.postedJobs),
                     ],
                     const SizedBox(height: 32),
+                    const ThemeModeSection(),
+                    const SizedBox(height: 14),
                     const ProfileLogoutSection(),
                     const SizedBox(height: 16),
                   ],
@@ -117,7 +120,7 @@ class _HrHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'JR System',
+                  'SmartHire',
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.primary,
                     fontWeight: FontWeight.w800,

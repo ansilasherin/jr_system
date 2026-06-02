@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'src/app.dart';
 import 'src/core/network/api_client.dart';
 import 'src/core/network/api_config.dart';
+import 'src/core/theme/app_theme_view_model.dart';
 import 'src/features/candidate/data/candidate_repository.dart';
 import 'src/features/candidate/data/profile_repository.dart';
 import 'src/features/candidate/data/profile_service.dart';
@@ -12,10 +13,12 @@ import 'src/features/candidate/presentation/view_models/applications_view_model.
 import 'src/features/candidate/presentation/view_models/dashboard_view_model.dart';
 import 'src/features/candidate/presentation/view_models/hr_dashboard_view_model.dart';
 import 'src/features/candidate/presentation/view_models/profile_view_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ApiConfig.initialize();
+  final prefs = await SharedPreferences.getInstance();
   final apiClient = ApiClient();
   await apiClient.loadSavedServerUrl();
   final repository = CandidateRepository(apiClient);
@@ -29,6 +32,7 @@ Future<void> main() async {
       providers: [
         Provider.value(value: repository),
         Provider.value(value: profileRepository),
+        ChangeNotifierProvider(create: (_) => AppThemeViewModel(prefs)),
         ChangeNotifierProvider(create: (_) => AuthViewModel(repository)),
         ChangeNotifierProvider(create: (_) => DashboardViewModel(repository)),
         ChangeNotifierProvider(
@@ -43,5 +47,4 @@ Future<void> main() async {
     ),
   );
 }
-
 
