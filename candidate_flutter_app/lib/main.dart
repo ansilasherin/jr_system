@@ -44,30 +44,4 @@ Future<void> main() async {
   );
 }
 
-// Web/Desktop: http://127.0.0.1:8000
-// Physical phone: http://192.168.1.16:8000
-// Android emulator: http://10.0.2.2:8000
-// First working server കിട്ടിയാൽ app അത് save ചെയ്യും, പിന്നെ അതാണ് use ചെയ്യുക.
 
-// Backend ഇങ്ങനെ run ചെയ്താൽ phone/emulator/desktop എല്ലാം connect ചെയ്യാൻ chance കൂടുതലാണ്:
-
-// .\.venv\Scripts\python.exe manage.py runserver 0.0.0.0:8000
-// Important: the backend must be accessible on your LAN IP for a real phone.
-// If the phone cannot connect, start the server with 0.0.0.0 and allow port 8000 through firewall.
-// Still IP മാറിയാൽ മാത്രം custom ആയി run ചെയ്യാം:
-
-// flutter run --dart-define=API_LAN_URL=http://YOUR_PC_IP:8000
-// Updated:
-
-// api_config.dart
-// api_client.dart
-// candidate_repository.dart
-// Verified:
-
-// flutter analyze passed
-// flutter test passed
-
-// sneha123@gmail.com
-// anu@gmail.com
-
-//latest - python manage.py runserver 0.0.0.0:8000
